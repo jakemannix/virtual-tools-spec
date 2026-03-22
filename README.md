@@ -28,10 +28,12 @@ src/
   schema.ts              # Source of truth — data model (Zod + TypeScript)
   api.ts                 # Source of truth — registry API contract types
   validate.ts            # Semantic validation (registration-time checks)
+  registry.ts            # Reference control plane implementation
   fixture.ts             # Test fixture format schema (language-agnostic)
   schema.test.ts         # Data model acceptance tests (Appendix B scenarios)
   api.test.ts            # API contract type tests
   validate.test.ts       # Semantic validation tests
+  registry.test.ts       # Registry service tests (B.5 scenarios + CRUD)
   fixture.test.ts        # Fixture validation tests
   generate-schema.ts     # Generates schema.json from Zod definitions
   generate-openapi.ts    # Generates openapi.yaml from Zod definitions
@@ -87,6 +89,18 @@ requirements sections via `requirementsRef`.
 
 All three return structured `RegistrationViolation` arrays with `{field, rule, message}`.
 
+**registry.ts** — reference control plane implementation:
+- `RegistryService` class — in-memory (optionally file-backed via snapshot
+  serialization) implementation of the registry CRUD API
+- Tool CRUD with duplicate detection and semantic validation on create
+- Agent CRUD with dependency resolution and environment validation
+- Schema and Server CRUD
+- `deleteTool()` — full lifecycle enforcement via `validateDelete()`:
+  prod dependents block, stage dependents warn, tool removed on success
+- `forwardLineage()` — given an agent or tool, return resolved dependencies
+- `reverseLineage()` — given a tool, return all agent and tool dependents
+- `getSnapshot()` — export the full `Registry` for data plane consumption
+
 **fixtures/** — language-agnostic behavioral tests:
 - `b1-output-transform.json` — ArrayMap normalization (arxiv papers → unified schema)
 - `b2-scatter-gather.json` — 4-way fan-out with optional failure + aggregation
@@ -101,9 +115,6 @@ conformance.
 
 ## What's not here yet
 
-- **Reference control plane implementation** — a registry service
-  implementing the CRUD, lifecycle enforcement, and lineage query API
-  defined in `api.ts` and `openapi.yaml`
 - **Reference data plane implementation** — a slow, correct TypeScript
   implementation of `resolveToolsList` and `resolveToolCall` that passes
   the fixtures
