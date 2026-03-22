@@ -1,0 +1,106 @@
+{
+  "name": "B.4: Input Projection + Defaults + Field Mapping",
+  "description": "A source tool that customizes the backend's input schema in three ways: projects away optional fields (region, format), injects a default for a required field (api_key from env var), and renames a field (search_term → query) to match the agent's domain language.",
+  "requirementsRef": "§4.2",
+
+  "registry": {
+    "schemaVersion": "1.0",
+    "tools": [
+      {
+        "name": "search",
+        "version": "1.0.0",
+        "description": "Search with simplified interface",
+        "implementation": {
+          "source": {
+            "server": "search-service",
+            "tool": "raw_search",
+            "projection": ["region", "format"],
+            "defaults": {
+              "api_key": "${ENV.SEARCH_API_KEY}"
+            },
+            "fieldMapping": {
+              "search_term": "query"
+            }
+          }
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "search_term": { "type": "string", "description": "What to search for" }
+          },
+          "required": ["search_term"]
+        }
+      }
+    ]
+  },
+
+  "backends": {
+    "search-service": {
+      "raw_search": {
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "query": { "type": "string" },
+            "api_key": { "type": "string" },
+            "region": { "type": "string", "default": "us" },
+            "format": { "type": "string", "enum": ["json", "xml"], "default": "json" }
+          },
+          "required": ["query", "api_key"]
+        },
+        "response": {
+          "query": "ColBERT",
+          "total": 42,
+          "results": [
+            {
+              "title": "ColBERT: Efficient and Effective Passage Search",
+              "url": "https://example.com/colbert",
+              "snippet": "A neural retrieval method."
+            }
+          ]
+        }
+      }
+    }
+  },
+
+  "cases": [
+    {
+      "name": "field mapping + defaults + projection applied correctly",
+      "env": {
+        "SEARCH_API_KEY": "sk-test-key-12345"
+      },
+      "toolCall": {
+        "tool": "search",
+        "arguments": { "search_term": "ColBERT" },
+        "expectedBackendCalls": [
+          {
+            "server": "search-service",
+            "tool": "raw_search",
+            "arguments": {
+              "query": "ColBERT",
+              "api_key": "sk-test-key-12345"
+            }
+          }
+        ],
+        "expectedResponse": {
+          "query": "ColBERT",
+          "total": 42,
+          "results": [
+            {
+              "title": "ColBERT: Efficient and Effective Passage Search",
+              "url": "https://example.com/colbert",
+              "snippet": "A neural retrieval method."
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "tools/list shows agent-facing schema (not backend schema)",
+      "toolsList": {
+        "expectedTools": ["search"],
+        "unexpectedTools": ["raw_search"]
+      },
+      "description": "The agent sees 'search' with inputSchema containing 'search_term'. It does NOT see 'raw_search', 'query', 'api_key', 'region', or 'format'."
+    }
+  ]
+}

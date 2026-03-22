@@ -1,0 +1,37 @@
+{
+  "name": "@virtual-tools/spec",
+  "version": "0.1.0",
+  "description": "Virtual Tools Specification — canonical type definitions and validation",
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/jakemannix/virtual-tools-spec.git"
+  },
+  "type": "module",
+  "main": "dist/schema.js",
+  "types": "dist/schema.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/schema.js",
+      "types": "./dist/schema.d.ts"
+    }
+  },
+  "scripts": {
+    "build": "tsc",
+    "generate:json-schema": "tsx src/generate-schema.ts > schema.json",
+    "generate:openapi": "tsx src/generate-openapi.ts > openapi.yaml",
+    "generate": "npm run generate:json-schema && npm run generate:openapi",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "dependencies": {
+    "zod": "^3.24.0"
+  },
+  "devDependencies": {
+    "tsx": "^4.19.0",
+    "typescript": "^5.7.0",
+    "vitest": "^3.0.0",
+    "yaml": "^2.8.3",
+    "zod-to-json-schema": "^3.24.0"
+  }
+}

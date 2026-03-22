@@ -1,0 +1,191 @@
+{
+  "name": "B.3: Pipeline with Cross-Service Data Flow",
+  "description": "A 3-step pipeline where each step calls a different backend tool, and later steps construct their input from earlier steps' outputs. Step 2 extracts the entity ID from step 1's response; step 3 extracts the content ID from step 2's response.",
+  "requirementsRef": "§4.4.1",
+
+  "registry": {
+    "schemaVersion": "1.0",
+    "tools": [
+      {
+        "name": "store_research_finding",
+        "version": "1.0.0",
+        "description": "Create entity, register content, and tag it",
+        "implementation": {
+          "composition": {
+            "pipeline": {
+              "steps": [
+                {
+                  "id": "create",
+                  "operation": { "tool": "create_entity", "version": "1.*" },
+                  "input": {
+                    "construct": {
+                      "fields": {
+                        "name": { "fromInput": { "path": "$.title" } },
+                        "entity_type": { "constant": "research_finding" },
+                        "description": { "fromInput": { "path": "$.description" } },
+                        "properties": {
+                          "construct": {
+                            "fields": {
+                              "url": { "fromInput": { "path": "$.url" } }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                },
+                {
+                  "id": "register",
+                  "operation": { "tool": "register_content", "version": "1.*" },
+                  "input": {
+                    "construct": {
+                      "fields": {
+                        "entity_id": { "fromStep": { "stepId": "create", "path": "$.entity.id" } },
+                        "content_type": { "constant": "research_finding" },
+                        "url": { "fromInput": { "path": "$.url" } }
+                      }
+                    }
+                  }
+                },
+                {
+                  "id": "tag",
+                  "operation": { "tool": "tag_content", "version": "1.*" },
+                  "input": {
+                    "construct": {
+                      "fields": {
+                        "content_id": { "fromStep": { "stepId": "register", "path": "$.content.id" } },
+                        "tags": { "fromInput": { "path": "$.tags" } }
+                      }
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "title": { "type": "string" },
+            "description": { "type": "string" },
+            "url": { "type": "string" },
+            "tags": { "type": "array", "items": { "type": "string" } }
+          },
+          "required": ["title", "description", "url", "tags"]
+        }
+      },
+      {
+        "name": "create_entity",
+        "version": "1.0.0",
+        "implementation": {
+          "source": { "server": "entity-service", "tool": "create_entity" }
+        }
+      },
+      {
+        "name": "register_content",
+        "version": "1.0.0",
+        "implementation": {
+          "source": { "server": "tag-service", "tool": "register_content" }
+        }
+      },
+      {
+        "name": "tag_content",
+        "version": "1.0.0",
+        "implementation": {
+          "source": { "server": "tag-service", "tool": "tag_content" }
+        }
+      }
+    ]
+  },
+
+  "backends": {
+    "entity-service": {
+      "create_entity": {
+        "response": {
+          "success": true,
+          "entity": {
+            "id": "entity-abc-123",
+            "name": "ColBERT: Late Interaction Retrieval",
+            "entity_type": "research_finding",
+            "description": "A neural retrieval framework using contextualized late interaction.",
+            "created_at": "2026-03-21T18:00:00Z"
+          }
+        }
+      }
+    },
+    "tag-service": {
+      "register_content": {
+        "response": {
+          "success": true,
+          "content": {
+            "id": "content-def-456",
+            "entity_id": "entity-abc-123",
+            "content_type": "research_finding",
+            "url": "https://arxiv.org/abs/2004.12832",
+            "registered_at": "2026-03-21T18:00:01Z"
+          }
+        }
+      },
+      "tag_content": {
+        "response": {
+          "success": true,
+          "content_id": "content-def-456",
+          "tags": ["information-retrieval", "neural-search"],
+          "tagged_at": "2026-03-21T18:00:02Z"
+        }
+      }
+    }
+  },
+
+  "cases": [
+    {
+      "name": "3-step pipeline with cross-step data binding",
+      "toolCall": {
+        "tool": "store_research_finding",
+        "arguments": {
+          "title": "ColBERT: Late Interaction Retrieval",
+          "description": "A neural retrieval framework using contextualized late interaction.",
+          "url": "https://arxiv.org/abs/2004.12832",
+          "tags": ["information-retrieval", "neural-search"]
+        },
+        "expectedBackendCalls": [
+          {
+            "server": "entity-service",
+            "tool": "create_entity",
+            "arguments": {
+              "name": "ColBERT: Late Interaction Retrieval",
+              "entity_type": "research_finding",
+              "description": "A neural retrieval framework using contextualized late interaction.",
+              "properties": {
+                "url": "https://arxiv.org/abs/2004.12832"
+              }
+            }
+          },
+          {
+            "server": "tag-service",
+            "tool": "register_content",
+            "arguments": {
+              "entity_id": "entity-abc-123",
+              "content_type": "research_finding",
+              "url": "https://arxiv.org/abs/2004.12832"
+            }
+          },
+          {
+            "server": "tag-service",
+            "tool": "tag_content",
+            "arguments": {
+              "content_id": "content-def-456",
+              "tags": ["information-retrieval", "neural-search"]
+            }
+          }
+        ],
+        "expectedResponse": {
+          "success": true,
+          "content_id": "content-def-456",
+          "tags": ["information-retrieval", "neural-search"],
+          "tagged_at": "2026-03-21T18:00:02Z"
+        }
+      }
+    }
+  ]
+}

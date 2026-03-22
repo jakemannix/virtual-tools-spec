@@ -1,0 +1,70 @@
+{
+  "name": "B.5: Lineage Queries and Lifecycle Enforcement",
+  "description": "Tests the registry control plane's lineage queries (forward/reverse) and lifecycle enforcement on DELETE. A prod agent depends on search:1.*, which blocks deletion of the only 1.x version — until a replacement is registered.",
+  "requirementsRef": "§4.1.1, §4.1.5",
+
+  "registry": {
+    "schemaVersion": "1.0",
+    "tools": [
+      {
+        "name": "search",
+        "version": "1.0.0",
+        "environment": "prod",
+        "implementation": {
+          "source": { "server": "search-service", "tool": "search" }
+        }
+      },
+      {
+        "name": "search",
+        "version": "2.0.0",
+        "environment": "stage",
+        "implementation": {
+          "source": { "server": "search-service", "tool": "search_v2" }
+        }
+      }
+    ],
+    "agents": [
+      {
+        "name": "research-agent",
+        "version": "1.0.0",
+        "environment": "prod",
+        "dependencies": [
+          { "tool": "search", "versionRange": "1.*" }
+        ]
+      },
+      {
+        "name": "test-agent",
+        "version": "1.0.0",
+        "environment": "stage",
+        "dependencies": [
+          { "tool": "search", "versionRange": "2.0.0" }
+        ]
+      }
+    ]
+  },
+
+  "backends": {},
+
+  "cases": [
+    {
+      "name": "reverse lineage: which agents depend on search:1.0.0?",
+      "description": "Query returns research-agent (prod) because its dependency range 1.* matches 1.0.0."
+    },
+    {
+      "name": "DELETE search:1.0.0 is blocked by prod dependent",
+      "description": "research-agent (prod) depends on search:1.* and no other 1.x version exists. DELETE must be rejected with dependent details."
+    },
+    {
+      "name": "register search:1.1.0, then DELETE search:1.0.0 succeeds",
+      "description": "After registering search:1.1.0, the range search:1.* is still satisfiable. DELETE of 1.0.0 now succeeds."
+    },
+    {
+      "name": "forward lineage: what tools does research-agent depend on?",
+      "description": "Returns search with versionRange 1.* and resolvedVersions [1.0.0] (or [1.0.0, 1.1.0] after the new version is registered)."
+    },
+    {
+      "name": "DELETE search:2.0.0 warns about stage dependent",
+      "description": "test-agent (stage) depends on search:2.0.0. DELETE should succeed with a warning, not block."
+    }
+  ]
+}

@@ -1,0 +1,2807 @@
+openapi: 3.1.0
+info:
+  title: Virtual Tools Registry API
+  version: 0.1.0
+  description: >-
+    Control plane API for the Virtual Tools registry. Manages versioned tool, agent, schema, and server definitions with
+    lifecycle enforcement and lineage queries.
+
+
+    Generated from TypeScript type definitions (schema.ts, api.ts).
+
+    Requirements: docs/design/virtual-tools-requirements.md §4.1
+servers:
+  - url: http://localhost:8080
+    description: Local development
+paths:
+  /tools:
+    post:
+      summary: Register a tool
+      description: Register a physical or virtual tool definition. Static validation runs at registration time (§4.1.1).
+      tags:
+        - Tools
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateToolRequest"
+      responses:
+        "201":
+          description: Tool registered
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CreateToolResponse"
+        "400":
+          description: Static validation failed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RegistrationError"
+    get:
+      summary: List tools
+      description: Query tools by name, version, environment, server, or tags.
+      tags:
+        - Tools
+      parameters:
+        - name: name
+          in: query
+          schema:
+            type: string
+        - name: version
+          in: query
+          schema:
+            type: string
+          description: SemVer range filter
+        - name: environment
+          in: query
+          schema:
+            type: string
+        - name: server
+          in: query
+          schema:
+            type: string
+        - name: tags
+          in: query
+          schema:
+            type: array
+            items:
+              type: string
+      responses:
+        "200":
+          description: Tool list
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ListToolsResponse"
+  /tools/{name}:
+    get:
+      summary: Get latest version of a tool
+      tags:
+        - Tools
+      parameters:
+        - name: name
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Tool definition
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GetToolResponse"
+        "404":
+          description: Tool not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+  /tools/{name}/{version}:
+    get:
+      summary: Get a specific tool version
+      tags:
+        - Tools
+      parameters:
+        - name: name
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: version
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Tool definition
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GetToolResponse"
+        "404":
+          description: Tool or version not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+    delete:
+      summary: Delete a tool version
+      description: "Lifecycle enforcement (§4.1.1): rejects if prod agents depend on this version, warns if only stage agents
+        depend on it."
+      tags:
+        - Tools
+      parameters:
+        - name: name
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: version
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Deletion result (may be blocked by dependents)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DeleteToolResponse"
+        "404":
+          description: Tool or version not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+  /agents:
+    post:
+      summary: Register an agent
+      description: Register an agent with versioned tool dependencies and environment tag (§4.1.2).
+      tags:
+        - Agents
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateAgentRequest"
+      responses:
+        "201":
+          description: Agent registered
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CreateAgentResponse"
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+    get:
+      summary: List agents
+      tags:
+        - Agents
+      parameters:
+        - name: name
+          in: query
+          schema:
+            type: string
+        - name: environment
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Agent list
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ListAgentsResponse"
+  /schemas:
+    post:
+      summary: Register a schema
+      description: Register a named, versioned JSON Schema (§4.1.3). Tools reference schemas via $ref.
+      tags:
+        - Schemas
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateSchemaRequest"
+      responses:
+        "201":
+          description: Schema registered
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CreateSchemaResponse"
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+    get:
+      summary: List schemas
+      tags:
+        - Schemas
+      responses:
+        "200":
+          description: Schema list
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ListSchemasResponse"
+  /servers:
+    post:
+      summary: Register an MCP server
+      description: Register a backend MCP server declaration (§4.1.4). Used for SBOM tracking and lifecycle validation.
+      tags:
+        - Servers
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateServerRequest"
+      responses:
+        "201":
+          description: Server registered
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CreateServerResponse"
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+    get:
+      summary: List servers
+      tags:
+        - Servers
+      responses:
+        "200":
+          description: Server list
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ListServersResponse"
+  /lineage/forward/{agentName}:
+    get:
+      summary: Forward lineage query
+      description: "§4.1.5 Forward: Given agent X, return all (tool, version) tuples it depends on."
+      tags:
+        - Lineage
+      parameters:
+        - name: agentName
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: agentVersion
+          in: query
+          schema:
+            type: string
+        - name: environment
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Resolved dependencies
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ForwardLineageResult"
+        "404":
+          description: Agent not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+  /lineage/reverse/{toolName}:
+    get:
+      summary: Reverse lineage query
+      description: "§4.1.5 Reverse: Given tool Y (optionally version Z), return all agents that depend on it."
+      tags:
+        - Lineage
+      parameters:
+        - name: toolName
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: version
+          in: query
+          schema:
+            type: string
+          description: Specific version to check
+        - name: environment
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Dependent agents
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ReverseLineageResult"
+        "404":
+          description: Tool not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+components:
+  schemas:
+    ToolDefinition:
+      type: object
+      properties:
+        name:
+          type: string
+        version:
+          type: string
+          pattern: ^\d+\.\d+\.\d+$
+        description:
+          type: string
+        environment:
+          type: string
+        tags:
+          type: array
+          items:
+            type: string
+        annotations:
+          type: object
+          additionalProperties: {}
+        implementation:
+          anyOf:
+            - type: object
+              properties:
+                source:
+                  type: object
+                  properties:
+                    server:
+                      type: string
+                    serverVersion:
+                      type: string
+                      minLength: 1
+                    tool:
+                      type: string
+                    projection:
+                      type: array
+                      items:
+                        type: string
+                    defaults:
+                      type: object
+                      additionalProperties: {}
+                    fieldMapping:
+                      type: object
+                      additionalProperties:
+                        type: string
+                  required:
+                    - server
+                    - tool
+                  additionalProperties: false
+              required:
+                - source
+              additionalProperties: false
+            - type: object
+              properties:
+                composition:
+                  anyOf:
+                    - type: object
+                      properties:
+                        pipeline:
+                          type: object
+                          properties:
+                            type:
+                              type: string
+                              enum:
+                                - stateless
+                            steps:
+                              type: array
+                              items:
+                                type: object
+                                properties:
+                                  id:
+                                    type: string
+                                  operation:
+                                    anyOf:
+                                      - type: object
+                                        properties:
+                                          tool:
+                                            type: string
+                                          version:
+                                            $ref: "#/components/schemas/ToolDefinition/properties/implementation/anyOf/0/properties/source/properties/serverVersion"
+                                        required:
+                                          - tool
+                                        additionalProperties: false
+                                      - type: object
+                                        properties:
+                                          composition:
+                                            $ref: "#/components/schemas/ToolDefinition/properties/implementation/anyOf/1/properties/composition"
+                                        required:
+                                          - composition
+                                        additionalProperties: false
+                                  input:
+                                    anyOf:
+                                      - type: object
+                                        properties:
+                                          fromInput:
+                                            type: object
+                                            properties:
+                                              path:
+                                                type: string
+                                                pattern: ^\$
+                                            required:
+                                              - path
+                                            additionalProperties: false
+                                        required:
+                                          - fromInput
+                                        additionalProperties: false
+                                      - type: object
+                                        properties:
+                                          fromStep:
+                                            type: object
+                                            properties:
+                                              stepId:
+                                                type: string
+                                              path:
+                                                $ref: "#/components/schemas/ToolDefinition/properties/implementation/anyOf/1/properties/composition/anyOf/0/properties/\
+                                                  pipeline/properties/steps/items/properties/input/anyOf/0/properties/f\
+                                                  romInput/properties/path"
+                                            required:
+                                              - stepId
+                                              - path
+                                            additionalProperties: false
+                                        required:
+                                          - fromStep
+                                        additionalProperties: false
+                                      - type: object
+                                        properties:
+                                          constant: {}
+                                        additionalProperties: false
+                                      - type: object
+                                        properties:
+                                          construct:
+                                            type: object
+                                            properties:
+                                              fields:
+                                                type: object
+                                                additionalProperties:
+                                                  $ref: "#/components/schemas/ToolDefinition/properties/implementation/anyOf/1/properties/composition/anyOf/0/properties/\
+                                                    pipeline/properties/steps/items/properties/input"
+                                            required:
+                                              - fields
+                                            additionalProperties: false
+                                        required:
+                                          - construct
+                                        additionalProperties: false
+                                required:
+                                  - id
+                                  - operation
+                                additionalProperties: false
+                              minItems: 1
+                          required:
+                            - steps
+                          additionalProperties: false
+                      required:
+                        - pipeline
+                      additionalProperties: false
+                    - type: object
+                      properties:
+                        scatterGather:
+                          type: object
+                          properties:
+                            type:
+                              type: string
+                              enum:
+                                - stateless
+                            targets:
+                              type: array
+                              items:
+                                anyOf:
+                                  - type: object
+                                    properties:
+                                      tool:
+                                        type: string
+                                      version:
+                                        $ref: "#/components/schemas/ToolDefinition/properties/implementation/anyOf/0/properties/source/properties/serverVersion"
+                                      optional:
+                                        type: boolean
+                                    required:
+                                      - tool
+                                    additionalProperties: false
+                                  - type: object
+                                    properties:
+                                      composition:
+                                        $ref: "#/components/schemas/ToolDefinition/properties/implementation/anyOf/1/properties/composition"
+                                      optional:
+                                        type: boolean
+                                    required:
+                                      - composition
+                                    additionalProperties: false
+                              minItems: 1
+                            aggregation:
+                              type: array
+                              items:
+                                anyOf:
+                                  - type: object
+                                    properties:
+                                      extract:
+                                        type: object
+                                        properties:
+                                          path:
+                                            $ref: "#/components/schemas/ToolDefinition/properties/implementation/anyOf/1/properties/composition/anyOf/0/properties/\
+                                              pipeline/properties/steps/items/properties/input/anyOf/0/properties/fromI\
+                                              nput/properties/path"
+                                        required:
+                                          - path
+                                        additionalProperties: false
+                                    required:
+                                      - extract
+                                    additionalProperties: false
+                                  - type: object
+                                    properties:
+                                      flatten:
+                                        type: boolean
+                                        enum:
+                                          - true
+                                    required:
+                                      - flatten
+                                    additionalProperties: false
+                                  - type: object
+                                    properties:
+                                      dedupe:
+                                        type: object
+                                        properties:
+                                          field:
+                                            $ref: "#/components/schemas/ToolDefinition/properties/implementation/anyOf/1/properties/composition/anyOf/0/properties/\
+                                              pipeline/properties/steps/items/properties/input/anyOf/0/properties/fromI\
+                                              nput/properties/path"
+                                        required:
+                                          - field
+                                        additionalProperties: false
+                                    required:
+                                      - dedupe
+                                    additionalProperties: false
+                                  - type: object
+                                    properties:
+                                      sort:
+                                        type: object
+                                        properties:
+                                          field:
+                                            $ref: "#/components/schemas/ToolDefinition/properties/implementation/anyOf/1/properties/composition/anyOf/0/properties/\
+                                              pipeline/properties/steps/items/properties/input/anyOf/0/properties/fromI\
+                                              nput/properties/path"
+                                          order:
+                                            type: string
+                                            enum:
+                                              - asc
+                                              - desc
+                                        required:
+                                          - field
+                                          - order
+                                        additionalProperties: false
+                                    required:
+                                      - sort
+                                    additionalProperties: false
+                                  - type: object
+                                    properties:
+                                      limit:
+                                        type: object
+                                        properties:
+                                          count:
+                                            type: integer
+                                            exclusiveMinimum: true
+                                            minimum: 0
+                                        required:
+                                          - count
+                                        additionalProperties: false
+                                    required:
+                                      - limit
+                                    additionalProperties: false
+                                  - type: object
+                                    properties:
+                                      wrap:
+                                        type: object
+                                        properties:
+                                          field:
+                                            type: string
+                                        required:
+                                          - field
+                                        additionalProperties: false
+                                    required:
+                                      - wrap
+                                    additionalProperties: false
+                                  - type: object
+                                    properties:
+                                      merge:
+                                        type: boolean
+                                        enum:
+                                          - true
+                                    required:
+                                      - merge
+                                    additionalProperties: false
+                            timeoutMs:
+                              type: integer
+                              exclusiveMinimum: true
+                              minimum: 0
+                          required:
+                            - targets
+                          additionalProperties: false
+                      required:
+                        - scatterGather
+                      additionalProperties: false
+              required:
+                - composition
+              additionalProperties: false
+        inputSchema:
+          type: object
+          additionalProperties: {}
+        outputSchema:
+          $ref: "#/components/schemas/ToolDefinition/properties/inputSchema"
+        outputTransform:
+          type: object
+          properties:
+            mappings:
+              type: object
+              additionalProperties:
+                anyOf:
+                  - type: object
+                    properties:
+                      path:
+                        $ref: "#/components/schemas/ToolDefinition/properties/implementation/anyOf/1/properties/composition/anyOf/0/properties/\
+                          pipeline/properties/steps/items/properties/input/anyOf/0/properties/fromInput/properties/path"
+                      default: {}
+                    required:
+                      - path
+                    additionalProperties: false
+                  - type: object
+                    properties:
+                      value: {}
+                    additionalProperties: false
+                  - type: object
+                    properties:
+                      over:
+                        $ref: "#/components/schemas/ToolDefinition/properties/implementation/anyOf/1/properties/composition/anyOf/0/properties/\
+                          pipeline/properties/steps/items/properties/input/anyOf/0/properties/fromInput/properties/path"
+                      fields:
+                        type: object
+                        additionalProperties:
+                          $ref: "#/components/schemas/ToolDefinition/properties/outputTransform/properties/mappings/additionalProperties"
+                    required:
+                      - over
+                      - fields
+                    additionalProperties: false
+          required:
+            - mappings
+          additionalProperties: false
+        metadata:
+          type: object
+          additionalProperties: {}
+      required:
+        - name
+        - version
+        - implementation
+      additionalProperties: false
+    AgentDefinition:
+      type: object
+      properties:
+        name:
+          type: string
+        version:
+          type: string
+          pattern: ^\d+\.\d+\.\d+$
+        description:
+          type: string
+        environment:
+          type: string
+        dependencies:
+          type: array
+          items:
+            type: object
+            properties:
+              tool:
+                type: string
+              versionRange:
+                type: string
+                minLength: 1
+            required:
+              - tool
+              - versionRange
+            additionalProperties: false
+        metadata:
+          type: object
+          additionalProperties: {}
+      required:
+        - name
+        - version
+        - environment
+        - dependencies
+      additionalProperties: false
+    SchemaDefinition:
+      type: object
+      properties:
+        name:
+          type: string
+        version:
+          type: string
+          pattern: ^\d+\.\d+\.\d+$
+        description:
+          type: string
+        schema:
+          type: object
+          additionalProperties: {}
+        metadata:
+          type: object
+          additionalProperties: {}
+      required:
+        - name
+        - version
+        - schema
+      additionalProperties: false
+    ServerDefinition:
+      type: object
+      properties:
+        name:
+          type: string
+        version:
+          type: string
+          pattern: ^\d+\.\d+\.\d+$
+        description:
+          type: string
+        providedTools:
+          type: array
+          items:
+            type: object
+            properties:
+              name:
+                type: string
+              version:
+                $ref: "#/components/schemas/ServerDefinition/properties/version"
+            required:
+              - name
+              - version
+            additionalProperties: false
+        metadata:
+          type: object
+          additionalProperties: {}
+      required:
+        - name
+        - version
+        - providedTools
+      additionalProperties: false
+    CreateToolRequest:
+      type: object
+      properties:
+        tool:
+          type: object
+          properties:
+            name:
+              type: string
+            version:
+              type: string
+              pattern: ^\d+\.\d+\.\d+$
+            description:
+              type: string
+            environment:
+              type: string
+            tags:
+              type: array
+              items:
+                type: string
+            annotations:
+              type: object
+              additionalProperties: {}
+            implementation:
+              anyOf:
+                - type: object
+                  properties:
+                    source:
+                      type: object
+                      properties:
+                        server:
+                          type: string
+                        serverVersion:
+                          type: string
+                          minLength: 1
+                        tool:
+                          type: string
+                        projection:
+                          type: array
+                          items:
+                            type: string
+                        defaults:
+                          type: object
+                          additionalProperties: {}
+                        fieldMapping:
+                          type: object
+                          additionalProperties:
+                            type: string
+                      required:
+                        - server
+                        - tool
+                      additionalProperties: false
+                  required:
+                    - source
+                  additionalProperties: false
+                - type: object
+                  properties:
+                    composition:
+                      anyOf:
+                        - type: object
+                          properties:
+                            pipeline:
+                              type: object
+                              properties:
+                                type:
+                                  type: string
+                                  enum:
+                                    - stateless
+                                steps:
+                                  type: array
+                                  items:
+                                    type: object
+                                    properties:
+                                      id:
+                                        type: string
+                                      operation:
+                                        anyOf:
+                                          - type: object
+                                            properties:
+                                              tool:
+                                                type: string
+                                              version:
+                                                $ref: "#/components/schemas/CreateToolRequest/properties/tool/properties/implementation/anyOf/0/properties/source/prope\
+                                                  rties/serverVersion"
+                                            required:
+                                              - tool
+                                            additionalProperties: false
+                                          - type: object
+                                            properties:
+                                              composition:
+                                                $ref: "#/components/schemas/CreateToolRequest/properties/tool/properties/implementation/anyOf/1/properties/composition"
+                                            required:
+                                              - composition
+                                            additionalProperties: false
+                                      input:
+                                        anyOf:
+                                          - type: object
+                                            properties:
+                                              fromInput:
+                                                type: object
+                                                properties:
+                                                  path:
+                                                    type: string
+                                                    pattern: ^\$
+                                                required:
+                                                  - path
+                                                additionalProperties: false
+                                            required:
+                                              - fromInput
+                                            additionalProperties: false
+                                          - type: object
+                                            properties:
+                                              fromStep:
+                                                type: object
+                                                properties:
+                                                  stepId:
+                                                    type: string
+                                                  path:
+                                                    $ref: "#/components/schemas/CreateToolRequest/properties/tool/properties/implementation/anyOf/1/properties/composition/\
+                                                      anyOf/0/properties/pipeline/properties/steps/items/properties/inp\
+                                                      ut/anyOf/0/properties/fromInput/properties/path"
+                                                required:
+                                                  - stepId
+                                                  - path
+                                                additionalProperties: false
+                                            required:
+                                              - fromStep
+                                            additionalProperties: false
+                                          - type: object
+                                            properties:
+                                              constant: {}
+                                            additionalProperties: false
+                                          - type: object
+                                            properties:
+                                              construct:
+                                                type: object
+                                                properties:
+                                                  fields:
+                                                    type: object
+                                                    additionalProperties:
+                                                      $ref: "#/components/schemas/CreateToolRequest/properties/tool/properties/implementation/anyOf/1/properties/composition/\
+                                                        anyOf/0/properties/pipeline/properties/steps/items/properties/i\
+                                                        nput"
+                                                required:
+                                                  - fields
+                                                additionalProperties: false
+                                            required:
+                                              - construct
+                                            additionalProperties: false
+                                    required:
+                                      - id
+                                      - operation
+                                    additionalProperties: false
+                                  minItems: 1
+                              required:
+                                - steps
+                              additionalProperties: false
+                          required:
+                            - pipeline
+                          additionalProperties: false
+                        - type: object
+                          properties:
+                            scatterGather:
+                              type: object
+                              properties:
+                                type:
+                                  type: string
+                                  enum:
+                                    - stateless
+                                targets:
+                                  type: array
+                                  items:
+                                    anyOf:
+                                      - type: object
+                                        properties:
+                                          tool:
+                                            type: string
+                                          version:
+                                            $ref: "#/components/schemas/CreateToolRequest/properties/tool/properties/implementation/anyOf/0/properties/source/prope\
+                                              rties/serverVersion"
+                                          optional:
+                                            type: boolean
+                                        required:
+                                          - tool
+                                        additionalProperties: false
+                                      - type: object
+                                        properties:
+                                          composition:
+                                            $ref: "#/components/schemas/CreateToolRequest/properties/tool/properties/implementation/anyOf/1/properties/composition"
+                                          optional:
+                                            type: boolean
+                                        required:
+                                          - composition
+                                        additionalProperties: false
+                                  minItems: 1
+                                aggregation:
+                                  type: array
+                                  items:
+                                    anyOf:
+                                      - type: object
+                                        properties:
+                                          extract:
+                                            type: object
+                                            properties:
+                                              path:
+                                                $ref: "#/components/schemas/CreateToolRequest/properties/tool/properties/implementation/anyOf/1/properties/composition/\
+                                                  anyOf/0/properties/pipeline/properties/steps/items/properties/input/a\
+                                                  nyOf/0/properties/fromInput/properties/path"
+                                            required:
+                                              - path
+                                            additionalProperties: false
+                                        required:
+                                          - extract
+                                        additionalProperties: false
+                                      - type: object
+                                        properties:
+                                          flatten:
+                                            type: boolean
+                                            enum:
+                                              - true
+                                        required:
+                                          - flatten
+                                        additionalProperties: false
+                                      - type: object
+                                        properties:
+                                          dedupe:
+                                            type: object
+                                            properties:
+                                              field:
+                                                $ref: "#/components/schemas/CreateToolRequest/properties/tool/properties/implementation/anyOf/1/properties/composition/\
+                                                  anyOf/0/properties/pipeline/properties/steps/items/properties/input/a\
+                                                  nyOf/0/properties/fromInput/properties/path"
+                                            required:
+                                              - field
+                                            additionalProperties: false
+                                        required:
+                                          - dedupe
+                                        additionalProperties: false
+                                      - type: object
+                                        properties:
+                                          sort:
+                                            type: object
+                                            properties:
+                                              field:
+                                                $ref: "#/components/schemas/CreateToolRequest/properties/tool/properties/implementation/anyOf/1/properties/composition/\
+                                                  anyOf/0/properties/pipeline/properties/steps/items/properties/input/a\
+                                                  nyOf/0/properties/fromInput/properties/path"
+                                              order:
+                                                type: string
+                                                enum:
+                                                  - asc
+                                                  - desc
+                                            required:
+                                              - field
+                                              - order
+                                            additionalProperties: false
+                                        required:
+                                          - sort
+                                        additionalProperties: false
+                                      - type: object
+                                        properties:
+                                          limit:
+                                            type: object
+                                            properties:
+                                              count:
+                                                type: integer
+                                                exclusiveMinimum: true
+                                                minimum: 0
+                                            required:
+                                              - count
+                                            additionalProperties: false
+                                        required:
+                                          - limit
+                                        additionalProperties: false
+                                      - type: object
+                                        properties:
+                                          wrap:
+                                            type: object
+                                            properties:
+                                              field:
+                                                type: string
+                                            required:
+                                              - field
+                                            additionalProperties: false
+                                        required:
+                                          - wrap
+                                        additionalProperties: false
+                                      - type: object
+                                        properties:
+                                          merge:
+                                            type: boolean
+                                            enum:
+                                              - true
+                                        required:
+                                          - merge
+                                        additionalProperties: false
+                                timeoutMs:
+                                  type: integer
+                                  exclusiveMinimum: true
+                                  minimum: 0
+                              required:
+                                - targets
+                              additionalProperties: false
+                          required:
+                            - scatterGather
+                          additionalProperties: false
+                  required:
+                    - composition
+                  additionalProperties: false
+            inputSchema:
+              type: object
+              additionalProperties: {}
+            outputSchema:
+              $ref: "#/components/schemas/CreateToolRequest/properties/tool/properties/inputSchema"
+            outputTransform:
+              type: object
+              properties:
+                mappings:
+                  type: object
+                  additionalProperties:
+                    anyOf:
+                      - type: object
+                        properties:
+                          path:
+                            $ref: "#/components/schemas/CreateToolRequest/properties/tool/properties/implementation/anyOf/1/properties/composition/\
+                              anyOf/0/properties/pipeline/properties/steps/items/properties/input/anyOf/0/properties/fr\
+                              omInput/properties/path"
+                          default: {}
+                        required:
+                          - path
+                        additionalProperties: false
+                      - type: object
+                        properties:
+                          value: {}
+                        additionalProperties: false
+                      - type: object
+                        properties:
+                          over:
+                            $ref: "#/components/schemas/CreateToolRequest/properties/tool/properties/implementation/anyOf/1/properties/composition/\
+                              anyOf/0/properties/pipeline/properties/steps/items/properties/input/anyOf/0/properties/fr\
+                              omInput/properties/path"
+                          fields:
+                            type: object
+                            additionalProperties:
+                              $ref: "#/components/schemas/CreateToolRequest/properties/tool/properties/outputTransform/properties/mappings/additional\
+                                Properties"
+                        required:
+                          - over
+                          - fields
+                        additionalProperties: false
+              required:
+                - mappings
+              additionalProperties: false
+            metadata:
+              type: object
+              additionalProperties: {}
+          required:
+            - name
+            - version
+            - implementation
+          additionalProperties: false
+      required:
+        - tool
+      additionalProperties: false
+    CreateToolResponse:
+      type: object
+      properties:
+        tool:
+          type: object
+          properties:
+            name:
+              type: string
+            version:
+              type: string
+              pattern: ^\d+\.\d+\.\d+$
+            description:
+              type: string
+            environment:
+              type: string
+            tags:
+              type: array
+              items:
+                type: string
+            annotations:
+              type: object
+              additionalProperties: {}
+            implementation:
+              anyOf:
+                - type: object
+                  properties:
+                    source:
+                      type: object
+                      properties:
+                        server:
+                          type: string
+                        serverVersion:
+                          type: string
+                          minLength: 1
+                        tool:
+                          type: string
+                        projection:
+                          type: array
+                          items:
+                            type: string
+                        defaults:
+                          type: object
+                          additionalProperties: {}
+                        fieldMapping:
+                          type: object
+                          additionalProperties:
+                            type: string
+                      required:
+                        - server
+                        - tool
+                      additionalProperties: false
+                  required:
+                    - source
+                  additionalProperties: false
+                - type: object
+                  properties:
+                    composition:
+                      anyOf:
+                        - type: object
+                          properties:
+                            pipeline:
+                              type: object
+                              properties:
+                                type:
+                                  type: string
+                                  enum:
+                                    - stateless
+                                steps:
+                                  type: array
+                                  items:
+                                    type: object
+                                    properties:
+                                      id:
+                                        type: string
+                                      operation:
+                                        anyOf:
+                                          - type: object
+                                            properties:
+                                              tool:
+                                                type: string
+                                              version:
+                                                $ref: "#/components/schemas/CreateToolResponse/properties/tool/properties/implementation/anyOf/0/properties/source/prop\
+                                                  erties/serverVersion"
+                                            required:
+                                              - tool
+                                            additionalProperties: false
+                                          - type: object
+                                            properties:
+                                              composition:
+                                                $ref: "#/components/schemas/CreateToolResponse/properties/tool/properties/implementation/anyOf/1/properties/composition"
+                                            required:
+                                              - composition
+                                            additionalProperties: false
+                                      input:
+                                        anyOf:
+                                          - type: object
+                                            properties:
+                                              fromInput:
+                                                type: object
+                                                properties:
+                                                  path:
+                                                    type: string
+                                                    pattern: ^\$
+                                                required:
+                                                  - path
+                                                additionalProperties: false
+                                            required:
+                                              - fromInput
+                                            additionalProperties: false
+                                          - type: object
+                                            properties:
+                                              fromStep:
+                                                type: object
+                                                properties:
+                                                  stepId:
+                                                    type: string
+                                                  path:
+                                                    $ref: "#/components/schemas/CreateToolResponse/properties/tool/properties/implementation/anyOf/1/properties/composition\
+                                                      /anyOf/0/properties/pipeline/properties/steps/items/properties/in\
+                                                      put/anyOf/0/properties/fromInput/properties/path"
+                                                required:
+                                                  - stepId
+                                                  - path
+                                                additionalProperties: false
+                                            required:
+                                              - fromStep
+                                            additionalProperties: false
+                                          - type: object
+                                            properties:
+                                              constant: {}
+                                            additionalProperties: false
+                                          - type: object
+                                            properties:
+                                              construct:
+                                                type: object
+                                                properties:
+                                                  fields:
+                                                    type: object
+                                                    additionalProperties:
+                                                      $ref: "#/components/schemas/CreateToolResponse/properties/tool/properties/implementation/anyOf/1/properties/composition\
+                                                        /anyOf/0/properties/pipeline/properties/steps/items/properties/\
+                                                        input"
+                                                required:
+                                                  - fields
+                                                additionalProperties: false
+                                            required:
+                                              - construct
+                                            additionalProperties: false
+                                    required:
+                                      - id
+                                      - operation
+                                    additionalProperties: false
+                                  minItems: 1
+                              required:
+                                - steps
+                              additionalProperties: false
+                          required:
+                            - pipeline
+                          additionalProperties: false
+                        - type: object
+                          properties:
+                            scatterGather:
+                              type: object
+                              properties:
+                                type:
+                                  type: string
+                                  enum:
+                                    - stateless
+                                targets:
+                                  type: array
+                                  items:
+                                    anyOf:
+                                      - type: object
+                                        properties:
+                                          tool:
+                                            type: string
+                                          version:
+                                            $ref: "#/components/schemas/CreateToolResponse/properties/tool/properties/implementation/anyOf/0/properties/source/prop\
+                                              erties/serverVersion"
+                                          optional:
+                                            type: boolean
+                                        required:
+                                          - tool
+                                        additionalProperties: false
+                                      - type: object
+                                        properties:
+                                          composition:
+                                            $ref: "#/components/schemas/CreateToolResponse/properties/tool/properties/implementation/anyOf/1/properties/composition"
+                                          optional:
+                                            type: boolean
+                                        required:
+                                          - composition
+                                        additionalProperties: false
+                                  minItems: 1
+                                aggregation:
+                                  type: array
+                                  items:
+                                    anyOf:
+                                      - type: object
+                                        properties:
+                                          extract:
+                                            type: object
+                                            properties:
+                                              path:
+                                                $ref: "#/components/schemas/CreateToolResponse/properties/tool/properties/implementation/anyOf/1/properties/composition\
+                                                  /anyOf/0/properties/pipeline/properties/steps/items/properties/input/\
+                                                  anyOf/0/properties/fromInput/properties/path"
+                                            required:
+                                              - path
+                                            additionalProperties: false
+                                        required:
+                                          - extract
+                                        additionalProperties: false
+                                      - type: object
+                                        properties:
+                                          flatten:
+                                            type: boolean
+                                            enum:
+                                              - true
+                                        required:
+                                          - flatten
+                                        additionalProperties: false
+                                      - type: object
+                                        properties:
+                                          dedupe:
+                                            type: object
+                                            properties:
+                                              field:
+                                                $ref: "#/components/schemas/CreateToolResponse/properties/tool/properties/implementation/anyOf/1/properties/composition\
+                                                  /anyOf/0/properties/pipeline/properties/steps/items/properties/input/\
+                                                  anyOf/0/properties/fromInput/properties/path"
+                                            required:
+                                              - field
+                                            additionalProperties: false
+                                        required:
+                                          - dedupe
+                                        additionalProperties: false
+                                      - type: object
+                                        properties:
+                                          sort:
+                                            type: object
+                                            properties:
+                                              field:
+                                                $ref: "#/components/schemas/CreateToolResponse/properties/tool/properties/implementation/anyOf/1/properties/composition\
+                                                  /anyOf/0/properties/pipeline/properties/steps/items/properties/input/\
+                                                  anyOf/0/properties/fromInput/properties/path"
+                                              order:
+                                                type: string
+                                                enum:
+                                                  - asc
+                                                  - desc
+                                            required:
+                                              - field
+                                              - order
+                                            additionalProperties: false
+                                        required:
+                                          - sort
+                                        additionalProperties: false
+                                      - type: object
+                                        properties:
+                                          limit:
+                                            type: object
+                                            properties:
+                                              count:
+                                                type: integer
+                                                exclusiveMinimum: true
+                                                minimum: 0
+                                            required:
+                                              - count
+                                            additionalProperties: false
+                                        required:
+                                          - limit
+                                        additionalProperties: false
+                                      - type: object
+                                        properties:
+                                          wrap:
+                                            type: object
+                                            properties:
+                                              field:
+                                                type: string
+                                            required:
+                                              - field
+                                            additionalProperties: false
+                                        required:
+                                          - wrap
+                                        additionalProperties: false
+                                      - type: object
+                                        properties:
+                                          merge:
+                                            type: boolean
+                                            enum:
+                                              - true
+                                        required:
+                                          - merge
+                                        additionalProperties: false
+                                timeoutMs:
+                                  type: integer
+                                  exclusiveMinimum: true
+                                  minimum: 0
+                              required:
+                                - targets
+                              additionalProperties: false
+                          required:
+                            - scatterGather
+                          additionalProperties: false
+                  required:
+                    - composition
+                  additionalProperties: false
+            inputSchema:
+              type: object
+              additionalProperties: {}
+            outputSchema:
+              $ref: "#/components/schemas/CreateToolResponse/properties/tool/properties/inputSchema"
+            outputTransform:
+              type: object
+              properties:
+                mappings:
+                  type: object
+                  additionalProperties:
+                    anyOf:
+                      - type: object
+                        properties:
+                          path:
+                            $ref: "#/components/schemas/CreateToolResponse/properties/tool/properties/implementation/anyOf/1/properties/composition\
+                              /anyOf/0/properties/pipeline/properties/steps/items/properties/input/anyOf/0/properties/f\
+                              romInput/properties/path"
+                          default: {}
+                        required:
+                          - path
+                        additionalProperties: false
+                      - type: object
+                        properties:
+                          value: {}
+                        additionalProperties: false
+                      - type: object
+                        properties:
+                          over:
+                            $ref: "#/components/schemas/CreateToolResponse/properties/tool/properties/implementation/anyOf/1/properties/composition\
+                              /anyOf/0/properties/pipeline/properties/steps/items/properties/input/anyOf/0/properties/f\
+                              romInput/properties/path"
+                          fields:
+                            type: object
+                            additionalProperties:
+                              $ref: "#/components/schemas/CreateToolResponse/properties/tool/properties/outputTransform/properties/mappings/additiona\
+                                lProperties"
+                        required:
+                          - over
+                          - fields
+                        additionalProperties: false
+              required:
+                - mappings
+              additionalProperties: false
+            metadata:
+              type: object
+              additionalProperties: {}
+          required:
+            - name
+            - version
+            - implementation
+          additionalProperties: false
+      required:
+        - tool
+      additionalProperties: false
+    RegistrationError:
+      type: object
+      properties:
+        error:
+          type: string
+          enum:
+            - registration_error
+        message:
+          type: string
+        violations:
+          type: array
+          items:
+            type: object
+            properties:
+              field:
+                type: string
+              rule:
+                type: string
+              message:
+                type: string
+            required:
+              - field
+              - rule
+              - message
+            additionalProperties: false
+      required:
+        - error
+        - message
+        - violations
+      additionalProperties: false
+    ListToolsParams:
+      type: object
+      properties:
+        name:
+          type: string
+        version:
+          type: string
+          minLength: 1
+        environment:
+          type: string
+        server:
+          type: string
+        tags:
+          type: array
+          items:
+            type: string
+      additionalProperties: false
+    ListToolsResponse:
+      type: object
+      properties:
+        tools:
+          type: array
+          items:
+            type: object
+            properties:
+              name:
+                type: string
+              version:
+                type: string
+                pattern: ^\d+\.\d+\.\d+$
+              description:
+                type: string
+              environment:
+                type: string
+              tags:
+                type: array
+                items:
+                  type: string
+              annotations:
+                type: object
+                additionalProperties: {}
+              implementation:
+                anyOf:
+                  - type: object
+                    properties:
+                      source:
+                        type: object
+                        properties:
+                          server:
+                            type: string
+                          serverVersion:
+                            type: string
+                            minLength: 1
+                          tool:
+                            type: string
+                          projection:
+                            type: array
+                            items:
+                              type: string
+                          defaults:
+                            type: object
+                            additionalProperties: {}
+                          fieldMapping:
+                            type: object
+                            additionalProperties:
+                              type: string
+                        required:
+                          - server
+                          - tool
+                        additionalProperties: false
+                    required:
+                      - source
+                    additionalProperties: false
+                  - type: object
+                    properties:
+                      composition:
+                        anyOf:
+                          - type: object
+                            properties:
+                              pipeline:
+                                type: object
+                                properties:
+                                  type:
+                                    type: string
+                                    enum:
+                                      - stateless
+                                  steps:
+                                    type: array
+                                    items:
+                                      type: object
+                                      properties:
+                                        id:
+                                          type: string
+                                        operation:
+                                          anyOf:
+                                            - type: object
+                                              properties:
+                                                tool:
+                                                  type: string
+                                                version:
+                                                  $ref: "#/components/schemas/ListToolsResponse/properties/tools/items/properties/implementation/anyOf/0/properties/sourc\
+                                                    e/properties/serverVersion"
+                                              required:
+                                                - tool
+                                              additionalProperties: false
+                                            - type: object
+                                              properties:
+                                                composition:
+                                                  $ref: "#/components/schemas/ListToolsResponse/properties/tools/items/properties/implementation/anyOf/1/properties/compo\
+                                                    sition"
+                                              required:
+                                                - composition
+                                              additionalProperties: false
+                                        input:
+                                          anyOf:
+                                            - type: object
+                                              properties:
+                                                fromInput:
+                                                  type: object
+                                                  properties:
+                                                    path:
+                                                      type: string
+                                                      pattern: ^\$
+                                                  required:
+                                                    - path
+                                                  additionalProperties: false
+                                              required:
+                                                - fromInput
+                                              additionalProperties: false
+                                            - type: object
+                                              properties:
+                                                fromStep:
+                                                  type: object
+                                                  properties:
+                                                    stepId:
+                                                      type: string
+                                                    path:
+                                                      $ref: "#/components/schemas/ListToolsResponse/properties/tools/items/properties/implementation/anyOf/1/properties/compo\
+                                                        sition/anyOf/0/properties/pipeline/properties/steps/items/prope\
+                                                        rties/input/anyOf/0/properties/fromInput/properties/path"
+                                                  required:
+                                                    - stepId
+                                                    - path
+                                                  additionalProperties: false
+                                              required:
+                                                - fromStep
+                                              additionalProperties: false
+                                            - type: object
+                                              properties:
+                                                constant: {}
+                                              additionalProperties: false
+                                            - type: object
+                                              properties:
+                                                construct:
+                                                  type: object
+                                                  properties:
+                                                    fields:
+                                                      type: object
+                                                      additionalProperties:
+                                                        $ref: "#/components/schemas/ListToolsResponse/properties/tools/items/properties/implementation/anyOf/1/properties/compo\
+                                                          sition/anyOf/0/properties/pipeline/properties/steps/items/pro\
+                                                          perties/input"
+                                                  required:
+                                                    - fields
+                                                  additionalProperties: false
+                                              required:
+                                                - construct
+                                              additionalProperties: false
+                                      required:
+                                        - id
+                                        - operation
+                                      additionalProperties: false
+                                    minItems: 1
+                                required:
+                                  - steps
+                                additionalProperties: false
+                            required:
+                              - pipeline
+                            additionalProperties: false
+                          - type: object
+                            properties:
+                              scatterGather:
+                                type: object
+                                properties:
+                                  type:
+                                    type: string
+                                    enum:
+                                      - stateless
+                                  targets:
+                                    type: array
+                                    items:
+                                      anyOf:
+                                        - type: object
+                                          properties:
+                                            tool:
+                                              type: string
+                                            version:
+                                              $ref: "#/components/schemas/ListToolsResponse/properties/tools/items/properties/implementation/anyOf/0/properties/sourc\
+                                                e/properties/serverVersion"
+                                            optional:
+                                              type: boolean
+                                          required:
+                                            - tool
+                                          additionalProperties: false
+                                        - type: object
+                                          properties:
+                                            composition:
+                                              $ref: "#/components/schemas/ListToolsResponse/properties/tools/items/properties/implementation/anyOf/1/properties/compo\
+                                                sition"
+                                            optional:
+                                              type: boolean
+                                          required:
+                                            - composition
+                                          additionalProperties: false
+                                    minItems: 1
+                                  aggregation:
+                                    type: array
+                                    items:
+                                      anyOf:
+                                        - type: object
+                                          properties:
+                                            extract:
+                                              type: object
+                                              properties:
+                                                path:
+                                                  $ref: "#/components/schemas/ListToolsResponse/properties/tools/items/properties/implementation/anyOf/1/properties/compo\
+                                                    sition/anyOf/0/properties/pipeline/properties/steps/items/propertie\
+                                                    s/input/anyOf/0/properties/fromInput/properties/path"
+                                              required:
+                                                - path
+                                              additionalProperties: false
+                                          required:
+                                            - extract
+                                          additionalProperties: false
+                                        - type: object
+                                          properties:
+                                            flatten:
+                                              type: boolean
+                                              enum:
+                                                - true
+                                          required:
+                                            - flatten
+                                          additionalProperties: false
+                                        - type: object
+                                          properties:
+                                            dedupe:
+                                              type: object
+                                              properties:
+                                                field:
+                                                  $ref: "#/components/schemas/ListToolsResponse/properties/tools/items/properties/implementation/anyOf/1/properties/compo\
+                                                    sition/anyOf/0/properties/pipeline/properties/steps/items/propertie\
+                                                    s/input/anyOf/0/properties/fromInput/properties/path"
+                                              required:
+                                                - field
+                                              additionalProperties: false
+                                          required:
+                                            - dedupe
+                                          additionalProperties: false
+                                        - type: object
+                                          properties:
+                                            sort:
+                                              type: object
+                                              properties:
+                                                field:
+                                                  $ref: "#/components/schemas/ListToolsResponse/properties/tools/items/properties/implementation/anyOf/1/properties/compo\
+                                                    sition/anyOf/0/properties/pipeline/properties/steps/items/propertie\
+                                                    s/input/anyOf/0/properties/fromInput/properties/path"
+                                                order:
+                                                  type: string
+                                                  enum:
+                                                    - asc
+                                                    - desc
+                                              required:
+                                                - field
+                                                - order
+                                              additionalProperties: false
+                                          required:
+                                            - sort
+                                          additionalProperties: false
+                                        - type: object
+                                          properties:
+                                            limit:
+                                              type: object
+                                              properties:
+                                                count:
+                                                  type: integer
+                                                  exclusiveMinimum: true
+                                                  minimum: 0
+                                              required:
+                                                - count
+                                              additionalProperties: false
+                                          required:
+                                            - limit
+                                          additionalProperties: false
+                                        - type: object
+                                          properties:
+                                            wrap:
+                                              type: object
+                                              properties:
+                                                field:
+                                                  type: string
+                                              required:
+                                                - field
+                                              additionalProperties: false
+                                          required:
+                                            - wrap
+                                          additionalProperties: false
+                                        - type: object
+                                          properties:
+                                            merge:
+                                              type: boolean
+                                              enum:
+                                                - true
+                                          required:
+                                            - merge
+                                          additionalProperties: false
+                                  timeoutMs:
+                                    type: integer
+                                    exclusiveMinimum: true
+                                    minimum: 0
+                                required:
+                                  - targets
+                                additionalProperties: false
+                            required:
+                              - scatterGather
+                            additionalProperties: false
+                    required:
+                      - composition
+                    additionalProperties: false
+              inputSchema:
+                type: object
+                additionalProperties: {}
+              outputSchema:
+                $ref: "#/components/schemas/ListToolsResponse/properties/tools/items/properties/inputSchema"
+              outputTransform:
+                type: object
+                properties:
+                  mappings:
+                    type: object
+                    additionalProperties:
+                      anyOf:
+                        - type: object
+                          properties:
+                            path:
+                              $ref: "#/components/schemas/ListToolsResponse/properties/tools/items/properties/implementation/anyOf/1/properties/compo\
+                                sition/anyOf/0/properties/pipeline/properties/steps/items/properties/input/anyOf/0/prop\
+                                erties/fromInput/properties/path"
+                            default: {}
+                          required:
+                            - path
+                          additionalProperties: false
+                        - type: object
+                          properties:
+                            value: {}
+                          additionalProperties: false
+                        - type: object
+                          properties:
+                            over:
+                              $ref: "#/components/schemas/ListToolsResponse/properties/tools/items/properties/implementation/anyOf/1/properties/compo\
+                                sition/anyOf/0/properties/pipeline/properties/steps/items/properties/input/anyOf/0/prop\
+                                erties/fromInput/properties/path"
+                            fields:
+                              type: object
+                              additionalProperties:
+                                $ref: "#/components/schemas/ListToolsResponse/properties/tools/items/properties/outputTransform/properties/mappings/add\
+                                  itionalProperties"
+                          required:
+                            - over
+                            - fields
+                          additionalProperties: false
+                required:
+                  - mappings
+                additionalProperties: false
+              metadata:
+                type: object
+                additionalProperties: {}
+            required:
+              - name
+              - version
+              - implementation
+            additionalProperties: false
+      required:
+        - tools
+      additionalProperties: false
+    GetToolResponse:
+      type: object
+      properties:
+        tool:
+          type: object
+          properties:
+            name:
+              type: string
+            version:
+              type: string
+              pattern: ^\d+\.\d+\.\d+$
+            description:
+              type: string
+            environment:
+              type: string
+            tags:
+              type: array
+              items:
+                type: string
+            annotations:
+              type: object
+              additionalProperties: {}
+            implementation:
+              anyOf:
+                - type: object
+                  properties:
+                    source:
+                      type: object
+                      properties:
+                        server:
+                          type: string
+                        serverVersion:
+                          type: string
+                          minLength: 1
+                        tool:
+                          type: string
+                        projection:
+                          type: array
+                          items:
+                            type: string
+                        defaults:
+                          type: object
+                          additionalProperties: {}
+                        fieldMapping:
+                          type: object
+                          additionalProperties:
+                            type: string
+                      required:
+                        - server
+                        - tool
+                      additionalProperties: false
+                  required:
+                    - source
+                  additionalProperties: false
+                - type: object
+                  properties:
+                    composition:
+                      anyOf:
+                        - type: object
+                          properties:
+                            pipeline:
+                              type: object
+                              properties:
+                                type:
+                                  type: string
+                                  enum:
+                                    - stateless
+                                steps:
+                                  type: array
+                                  items:
+                                    type: object
+                                    properties:
+                                      id:
+                                        type: string
+                                      operation:
+                                        anyOf:
+                                          - type: object
+                                            properties:
+                                              tool:
+                                                type: string
+                                              version:
+                                                $ref: "#/components/schemas/GetToolResponse/properties/tool/properties/implementation/anyOf/0/properties/source/propert\
+                                                  ies/serverVersion"
+                                            required:
+                                              - tool
+                                            additionalProperties: false
+                                          - type: object
+                                            properties:
+                                              composition:
+                                                $ref: "#/components/schemas/GetToolResponse/properties/tool/properties/implementation/anyOf/1/properties/composition"
+                                            required:
+                                              - composition
+                                            additionalProperties: false
+                                      input:
+                                        anyOf:
+                                          - type: object
+                                            properties:
+                                              fromInput:
+                                                type: object
+                                                properties:
+                                                  path:
+                                                    type: string
+                                                    pattern: ^\$
+                                                required:
+                                                  - path
+                                                additionalProperties: false
+                                            required:
+                                              - fromInput
+                                            additionalProperties: false
+                                          - type: object
+                                            properties:
+                                              fromStep:
+                                                type: object
+                                                properties:
+                                                  stepId:
+                                                    type: string
+                                                  path:
+                                                    $ref: "#/components/schemas/GetToolResponse/properties/tool/properties/implementation/anyOf/1/properties/composition/an\
+                                                      yOf/0/properties/pipeline/properties/steps/items/properties/input\
+                                                      /anyOf/0/properties/fromInput/properties/path"
+                                                required:
+                                                  - stepId
+                                                  - path
+                                                additionalProperties: false
+                                            required:
+                                              - fromStep
+                                            additionalProperties: false
+                                          - type: object
+                                            properties:
+                                              constant: {}
+                                            additionalProperties: false
+                                          - type: object
+                                            properties:
+                                              construct:
+                                                type: object
+                                                properties:
+                                                  fields:
+                                                    type: object
+                                                    additionalProperties:
+                                                      $ref: "#/components/schemas/GetToolResponse/properties/tool/properties/implementation/anyOf/1/properties/composition/an\
+                                                        yOf/0/properties/pipeline/properties/steps/items/properties/inp\
+                                                        ut"
+                                                required:
+                                                  - fields
+                                                additionalProperties: false
+                                            required:
+                                              - construct
+                                            additionalProperties: false
+                                    required:
+                                      - id
+                                      - operation
+                                    additionalProperties: false
+                                  minItems: 1
+                              required:
+                                - steps
+                              additionalProperties: false
+                          required:
+                            - pipeline
+                          additionalProperties: false
+                        - type: object
+                          properties:
+                            scatterGather:
+                              type: object
+                              properties:
+                                type:
+                                  type: string
+                                  enum:
+                                    - stateless
+                                targets:
+                                  type: array
+                                  items:
+                                    anyOf:
+                                      - type: object
+                                        properties:
+                                          tool:
+                                            type: string
+                                          version:
+                                            $ref: "#/components/schemas/GetToolResponse/properties/tool/properties/implementation/anyOf/0/properties/source/propert\
+                                              ies/serverVersion"
+                                          optional:
+                                            type: boolean
+                                        required:
+                                          - tool
+                                        additionalProperties: false
+                                      - type: object
+                                        properties:
+                                          composition:
+                                            $ref: "#/components/schemas/GetToolResponse/properties/tool/properties/implementation/anyOf/1/properties/composition"
+                                          optional:
+                                            type: boolean
+                                        required:
+                                          - composition
+                                        additionalProperties: false
+                                  minItems: 1
+                                aggregation:
+                                  type: array
+                                  items:
+                                    anyOf:
+                                      - type: object
+                                        properties:
+                                          extract:
+                                            type: object
+                                            properties:
+                                              path:
+                                                $ref: "#/components/schemas/GetToolResponse/properties/tool/properties/implementation/anyOf/1/properties/composition/an\
+                                                  yOf/0/properties/pipeline/properties/steps/items/properties/input/any\
+                                                  Of/0/properties/fromInput/properties/path"
+                                            required:
+                                              - path
+                                            additionalProperties: false
+                                        required:
+                                          - extract
+                                        additionalProperties: false
+                                      - type: object
+                                        properties:
+                                          flatten:
+                                            type: boolean
+                                            enum:
+                                              - true
+                                        required:
+                                          - flatten
+                                        additionalProperties: false
+                                      - type: object
+                                        properties:
+                                          dedupe:
+                                            type: object
+                                            properties:
+                                              field:
+                                                $ref: "#/components/schemas/GetToolResponse/properties/tool/properties/implementation/anyOf/1/properties/composition/an\
+                                                  yOf/0/properties/pipeline/properties/steps/items/properties/input/any\
+                                                  Of/0/properties/fromInput/properties/path"
+                                            required:
+                                              - field
+                                            additionalProperties: false
+                                        required:
+                                          - dedupe
+                                        additionalProperties: false
+                                      - type: object
+                                        properties:
+                                          sort:
+                                            type: object
+                                            properties:
+                                              field:
+                                                $ref: "#/components/schemas/GetToolResponse/properties/tool/properties/implementation/anyOf/1/properties/composition/an\
+                                                  yOf/0/properties/pipeline/properties/steps/items/properties/input/any\
+                                                  Of/0/properties/fromInput/properties/path"
+                                              order:
+                                                type: string
+                                                enum:
+                                                  - asc
+                                                  - desc
+                                            required:
+                                              - field
+                                              - order
+                                            additionalProperties: false
+                                        required:
+                                          - sort
+                                        additionalProperties: false
+                                      - type: object
+                                        properties:
+                                          limit:
+                                            type: object
+                                            properties:
+                                              count:
+                                                type: integer
+                                                exclusiveMinimum: true
+                                                minimum: 0
+                                            required:
+                                              - count
+                                            additionalProperties: false
+                                        required:
+                                          - limit
+                                        additionalProperties: false
+                                      - type: object
+                                        properties:
+                                          wrap:
+                                            type: object
+                                            properties:
+                                              field:
+                                                type: string
+                                            required:
+                                              - field
+                                            additionalProperties: false
+                                        required:
+                                          - wrap
+                                        additionalProperties: false
+                                      - type: object
+                                        properties:
+                                          merge:
+                                            type: boolean
+                                            enum:
+                                              - true
+                                        required:
+                                          - merge
+                                        additionalProperties: false
+                                timeoutMs:
+                                  type: integer
+                                  exclusiveMinimum: true
+                                  minimum: 0
+                              required:
+                                - targets
+                              additionalProperties: false
+                          required:
+                            - scatterGather
+                          additionalProperties: false
+                  required:
+                    - composition
+                  additionalProperties: false
+            inputSchema:
+              type: object
+              additionalProperties: {}
+            outputSchema:
+              $ref: "#/components/schemas/GetToolResponse/properties/tool/properties/inputSchema"
+            outputTransform:
+              type: object
+              properties:
+                mappings:
+                  type: object
+                  additionalProperties:
+                    anyOf:
+                      - type: object
+                        properties:
+                          path:
+                            $ref: "#/components/schemas/GetToolResponse/properties/tool/properties/implementation/anyOf/1/properties/composition/an\
+                              yOf/0/properties/pipeline/properties/steps/items/properties/input/anyOf/0/properties/from\
+                              Input/properties/path"
+                          default: {}
+                        required:
+                          - path
+                        additionalProperties: false
+                      - type: object
+                        properties:
+                          value: {}
+                        additionalProperties: false
+                      - type: object
+                        properties:
+                          over:
+                            $ref: "#/components/schemas/GetToolResponse/properties/tool/properties/implementation/anyOf/1/properties/composition/an\
+                              yOf/0/properties/pipeline/properties/steps/items/properties/input/anyOf/0/properties/from\
+                              Input/properties/path"
+                          fields:
+                            type: object
+                            additionalProperties:
+                              $ref: "#/components/schemas/GetToolResponse/properties/tool/properties/outputTransform/properties/mappings/additionalPr\
+                                operties"
+                        required:
+                          - over
+                          - fields
+                        additionalProperties: false
+              required:
+                - mappings
+              additionalProperties: false
+            metadata:
+              type: object
+              additionalProperties: {}
+          required:
+            - name
+            - version
+            - implementation
+          additionalProperties: false
+      required:
+        - tool
+      additionalProperties: false
+    DeleteToolResponse:
+      anyOf:
+        - type: object
+          properties:
+            deleted:
+              type: boolean
+              enum:
+                - true
+            warnings:
+              type: array
+              items:
+                type: object
+                properties:
+                  type:
+                    type: string
+                    enum:
+                      - agent
+                      - tool
+                  name:
+                    type: string
+                  version:
+                    type: string
+                    pattern: ^\d+\.\d+\.\d+$
+                  environment:
+                    type: string
+                  versionRange:
+                    type: string
+                    minLength: 1
+                  contact:
+                    type: string
+                required:
+                  - type
+                  - name
+                  - version
+                  - versionRange
+                additionalProperties: false
+              description: Stage-only dependents that may be affected
+          required:
+            - deleted
+          additionalProperties: false
+        - type: object
+          properties:
+            deleted:
+              type: boolean
+              enum:
+                - false
+            reason:
+              type: string
+            dependents:
+              type: array
+              items:
+                $ref: "#/components/schemas/DeleteToolResponse/anyOf/0/properties/warnings/items"
+              description: Prod agents blocking this deletion
+          required:
+            - deleted
+            - reason
+            - dependents
+          additionalProperties: false
+    DependentInfo:
+      type: object
+      properties:
+        type:
+          type: string
+          enum:
+            - agent
+            - tool
+        name:
+          type: string
+        version:
+          type: string
+          pattern: ^\d+\.\d+\.\d+$
+        environment:
+          type: string
+        versionRange:
+          type: string
+          minLength: 1
+        contact:
+          type: string
+      required:
+        - type
+        - name
+        - version
+        - versionRange
+      additionalProperties: false
+    CreateAgentRequest:
+      type: object
+      properties:
+        agent:
+          type: object
+          properties:
+            name:
+              type: string
+            version:
+              type: string
+              pattern: ^\d+\.\d+\.\d+$
+            description:
+              type: string
+            environment:
+              type: string
+            dependencies:
+              type: array
+              items:
+                type: object
+                properties:
+                  tool:
+                    type: string
+                  versionRange:
+                    type: string
+                    minLength: 1
+                required:
+                  - tool
+                  - versionRange
+                additionalProperties: false
+            metadata:
+              type: object
+              additionalProperties: {}
+          required:
+            - name
+            - version
+            - environment
+            - dependencies
+          additionalProperties: false
+      required:
+        - agent
+      additionalProperties: false
+    CreateAgentResponse:
+      type: object
+      properties:
+        agent:
+          type: object
+          properties:
+            name:
+              type: string
+            version:
+              type: string
+              pattern: ^\d+\.\d+\.\d+$
+            description:
+              type: string
+            environment:
+              type: string
+            dependencies:
+              type: array
+              items:
+                type: object
+                properties:
+                  tool:
+                    type: string
+                  versionRange:
+                    type: string
+                    minLength: 1
+                required:
+                  - tool
+                  - versionRange
+                additionalProperties: false
+            metadata:
+              type: object
+              additionalProperties: {}
+          required:
+            - name
+            - version
+            - environment
+            - dependencies
+          additionalProperties: false
+      required:
+        - agent
+      additionalProperties: false
+    ListAgentsParams:
+      type: object
+      properties:
+        name:
+          type: string
+        environment:
+          type: string
+      additionalProperties: false
+    ListAgentsResponse:
+      type: object
+      properties:
+        agents:
+          type: array
+          items:
+            type: object
+            properties:
+              name:
+                type: string
+              version:
+                type: string
+                pattern: ^\d+\.\d+\.\d+$
+              description:
+                type: string
+              environment:
+                type: string
+              dependencies:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    tool:
+                      type: string
+                    versionRange:
+                      type: string
+                      minLength: 1
+                  required:
+                    - tool
+                    - versionRange
+                  additionalProperties: false
+              metadata:
+                type: object
+                additionalProperties: {}
+            required:
+              - name
+              - version
+              - environment
+              - dependencies
+            additionalProperties: false
+      required:
+        - agents
+      additionalProperties: false
+    CreateSchemaRequest:
+      type: object
+      properties:
+        schema:
+          type: object
+          properties:
+            name:
+              type: string
+            version:
+              type: string
+              pattern: ^\d+\.\d+\.\d+$
+            description:
+              type: string
+            schema:
+              type: object
+              additionalProperties: {}
+            metadata:
+              type: object
+              additionalProperties: {}
+          required:
+            - name
+            - version
+            - schema
+          additionalProperties: false
+      required:
+        - schema
+      additionalProperties: false
+    CreateSchemaResponse:
+      type: object
+      properties:
+        schema:
+          type: object
+          properties:
+            name:
+              type: string
+            version:
+              type: string
+              pattern: ^\d+\.\d+\.\d+$
+            description:
+              type: string
+            schema:
+              type: object
+              additionalProperties: {}
+            metadata:
+              type: object
+              additionalProperties: {}
+          required:
+            - name
+            - version
+            - schema
+          additionalProperties: false
+      required:
+        - schema
+      additionalProperties: false
+    ListSchemasResponse:
+      type: object
+      properties:
+        schemas:
+          type: array
+          items:
+            type: object
+            properties:
+              name:
+                type: string
+              version:
+                type: string
+                pattern: ^\d+\.\d+\.\d+$
+              description:
+                type: string
+              schema:
+                type: object
+                additionalProperties: {}
+              metadata:
+                type: object
+                additionalProperties: {}
+            required:
+              - name
+              - version
+              - schema
+            additionalProperties: false
+      required:
+        - schemas
+      additionalProperties: false
+    CreateServerRequest:
+      type: object
+      properties:
+        server:
+          type: object
+          properties:
+            name:
+              type: string
+            version:
+              type: string
+              pattern: ^\d+\.\d+\.\d+$
+            description:
+              type: string
+            providedTools:
+              type: array
+              items:
+                type: object
+                properties:
+                  name:
+                    type: string
+                  version:
+                    $ref: "#/components/schemas/CreateServerRequest/properties/server/properties/version"
+                required:
+                  - name
+                  - version
+                additionalProperties: false
+            metadata:
+              type: object
+              additionalProperties: {}
+          required:
+            - name
+            - version
+            - providedTools
+          additionalProperties: false
+      required:
+        - server
+      additionalProperties: false
+    CreateServerResponse:
+      type: object
+      properties:
+        server:
+          type: object
+          properties:
+            name:
+              type: string
+            version:
+              type: string
+              pattern: ^\d+\.\d+\.\d+$
+            description:
+              type: string
+            providedTools:
+              type: array
+              items:
+                type: object
+                properties:
+                  name:
+                    type: string
+                  version:
+                    $ref: "#/components/schemas/CreateServerResponse/properties/server/properties/version"
+                required:
+                  - name
+                  - version
+                additionalProperties: false
+            metadata:
+              type: object
+              additionalProperties: {}
+          required:
+            - name
+            - version
+            - providedTools
+          additionalProperties: false
+      required:
+        - server
+      additionalProperties: false
+    ListServersResponse:
+      type: object
+      properties:
+        servers:
+          type: array
+          items:
+            type: object
+            properties:
+              name:
+                type: string
+              version:
+                type: string
+                pattern: ^\d+\.\d+\.\d+$
+              description:
+                type: string
+              providedTools:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    name:
+                      type: string
+                    version:
+                      $ref: "#/components/schemas/ListServersResponse/properties/servers/items/properties/version"
+                  required:
+                    - name
+                    - version
+                  additionalProperties: false
+              metadata:
+                type: object
+                additionalProperties: {}
+            required:
+              - name
+              - version
+              - providedTools
+            additionalProperties: false
+      required:
+        - servers
+      additionalProperties: false
+    ForwardLineageResult:
+      type: object
+      properties:
+        type:
+          type: string
+          enum:
+            - agent
+            - tool
+        name:
+          type: string
+        dependencies:
+          type: array
+          items:
+            type: object
+            properties:
+              tool:
+                type: string
+              versionRange:
+                type: string
+                minLength: 1
+              resolvedVersions:
+                type: array
+                items:
+                  type: string
+                  pattern: ^\d+\.\d+\.\d+$
+            required:
+              - tool
+              - versionRange
+              - resolvedVersions
+            additionalProperties: false
+      required:
+        - type
+        - name
+        - dependencies
+      additionalProperties: false
+    ResolvedDependency:
+      type: object
+      properties:
+        tool:
+          type: string
+        versionRange:
+          type: string
+          minLength: 1
+        resolvedVersions:
+          type: array
+          items:
+            type: string
+            pattern: ^\d+\.\d+\.\d+$
+      required:
+        - tool
+        - versionRange
+        - resolvedVersions
+      additionalProperties: false
+    ReverseLineageResult:
+      type: object
+      properties:
+        tool:
+          type: string
+        version:
+          type: string
+          pattern: ^\d+\.\d+\.\d+$
+        dependents:
+          type: array
+          items:
+            type: object
+            properties:
+              type:
+                type: string
+                enum:
+                  - agent
+                  - tool
+              name:
+                type: string
+              version:
+                $ref: "#/components/schemas/ReverseLineageResult/properties/version"
+              environment:
+                type: string
+              versionRange:
+                type: string
+                minLength: 1
+              contact:
+                type: string
+            required:
+              - type
+              - name
+              - version
+              - versionRange
+            additionalProperties: false
+      required:
+        - tool
+        - dependents
+      additionalProperties: false
+    ApiError:
+      type: object
+      properties:
+        error:
+          type: string
+        message:
+          type: string
+        details:
+          type: object
+          additionalProperties: {}
+      required:
+        - error
+        - message
+      additionalProperties: false
+

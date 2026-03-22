@@ -1,0 +1,131 @@
+{
+  "name": "B.1: Output Transform — ArrayMap Normalization",
+  "description": "A source tool with an arrayMap output transform normalizes a backend's native response format into a unified schema. The backend returns papers with arxiv-specific field names; the virtual tool maps them to a common (title, url, snippet, source) shape.",
+  "requirementsRef": "§4.3",
+
+  "registry": {
+    "schemaVersion": "1.0",
+    "tools": [
+      {
+        "name": "normalized_arxiv",
+        "version": "1.0.0",
+        "description": "arXiv search with normalized output",
+        "implementation": {
+          "source": {
+            "server": "search-service",
+            "tool": "arxiv_search"
+          }
+        },
+        "outputTransform": {
+          "mappings": {
+            "results": {
+              "over": "$.papers",
+              "fields": {
+                "title": { "path": "$.title" },
+                "url": { "path": "$.pdf_url" },
+                "snippet": { "path": "$.abstract", "default": "" },
+                "source": { "value": "arxiv" },
+                "source_type": { "value": "paper" }
+              }
+            }
+          }
+        },
+        "outputSchema": {
+          "type": "object",
+          "properties": {
+            "results": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "title": { "type": "string" },
+                  "url": { "type": "string" },
+                  "snippet": { "type": "string" },
+                  "source": { "type": "string" },
+                  "source_type": { "type": "string" }
+                },
+                "required": ["title", "url", "snippet", "source", "source_type"]
+              }
+            }
+          },
+          "required": ["results"]
+        }
+      }
+    ]
+  },
+
+  "backends": {
+    "search-service": {
+      "arxiv_search": {
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "query": { "type": "string" },
+            "num_results": { "type": "integer", "default": 5 }
+          },
+          "required": ["query"]
+        },
+        "response": {
+          "query": "ColBERT",
+          "papers": [
+            {
+              "arxiv_id": "2004.12832",
+              "title": "ColBERT: Efficient and Effective Passage Search via Contextualized Late Interaction over BERT",
+              "abstract": "Recent progress in Natural Language Understanding has been driven by large pre-trained language models.",
+              "authors": ["Omar Khattab", "Matei Zaharia"],
+              "categories": ["cs.IR", "cs.CL"],
+              "pdf_url": "https://arxiv.org/pdf/2004.12832",
+              "abs_url": "https://arxiv.org/abs/2004.12832",
+              "published": "2020-04-27T17:00:00Z"
+            },
+            {
+              "arxiv_id": "2112.01488",
+              "title": "ColBERTv2: Effective and Efficient Retrieval via Lightweight Late Interaction",
+              "abstract": "Neural information retrieval has seen significant advances from pretrained language models.",
+              "authors": ["Keshav Santhanam", "Omar Khattab"],
+              "categories": ["cs.IR"],
+              "pdf_url": "https://arxiv.org/pdf/2112.01488",
+              "abs_url": "https://arxiv.org/abs/2112.01488",
+              "published": "2021-12-02T18:00:00Z"
+            }
+          ]
+        }
+      }
+    }
+  },
+
+  "cases": [
+    {
+      "name": "arrayMap transforms papers to normalized results",
+      "toolCall": {
+        "tool": "normalized_arxiv",
+        "arguments": { "query": "ColBERT" },
+        "expectedBackendCalls": [
+          {
+            "server": "search-service",
+            "tool": "arxiv_search",
+            "arguments": { "query": "ColBERT" }
+          }
+        ],
+        "expectedResponse": {
+          "results": [
+            {
+              "title": "ColBERT: Efficient and Effective Passage Search via Contextualized Late Interaction over BERT",
+              "url": "https://arxiv.org/pdf/2004.12832",
+              "snippet": "Recent progress in Natural Language Understanding has been driven by large pre-trained language models.",
+              "source": "arxiv",
+              "source_type": "paper"
+            },
+            {
+              "title": "ColBERTv2: Effective and Efficient Retrieval via Lightweight Late Interaction",
+              "url": "https://arxiv.org/pdf/2112.01488",
+              "snippet": "Neural information retrieval has seen significant advances from pretrained language models.",
+              "source": "arxiv",
+              "source_type": "paper"
+            }
+          ]
+        }
+      }
+    }
+  ]
+}

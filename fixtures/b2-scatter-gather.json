@@ -1,0 +1,201 @@
+{
+  "name": "B.2: Scatter-Gather with Partial Failure",
+  "description": "A scatter-gather fans out to 4 normalized search tools in parallel, then aggregates. One target (github) is marked optional and returns an error. The composition succeeds with results from the 3 successful sources, plus an errors array describing the failure.",
+  "requirementsRef": "§4.4.2",
+
+  "registry": {
+    "schemaVersion": "1.0",
+    "tools": [
+      {
+        "name": "normalized_exa",
+        "version": "1.0.0",
+        "implementation": {
+          "source": { "server": "search-service", "tool": "exa_search" }
+        },
+        "outputTransform": {
+          "mappings": {
+            "results": {
+              "over": "$.results",
+              "fields": {
+                "title": { "path": "$.title" },
+                "url": { "path": "$.url" },
+                "snippet": { "path": "$.text", "default": "" },
+                "source": { "value": "exa" }
+              }
+            }
+          }
+        }
+      },
+      {
+        "name": "normalized_arxiv",
+        "version": "1.0.0",
+        "implementation": {
+          "source": { "server": "search-service", "tool": "arxiv_search" }
+        },
+        "outputTransform": {
+          "mappings": {
+            "results": {
+              "over": "$.papers",
+              "fields": {
+                "title": { "path": "$.title" },
+                "url": { "path": "$.pdf_url" },
+                "snippet": { "path": "$.abstract", "default": "" },
+                "source": { "value": "arxiv" }
+              }
+            }
+          }
+        }
+      },
+      {
+        "name": "normalized_github",
+        "version": "1.0.0",
+        "implementation": {
+          "source": { "server": "search-service", "tool": "github_search" }
+        },
+        "outputTransform": {
+          "mappings": {
+            "results": {
+              "over": "$.repos",
+              "fields": {
+                "title": { "path": "$.full_name" },
+                "url": { "path": "$.html_url" },
+                "snippet": { "path": "$.description", "default": "" },
+                "source": { "value": "github" }
+              }
+            }
+          }
+        }
+      },
+      {
+        "name": "normalized_huggingface",
+        "version": "1.0.0",
+        "implementation": {
+          "source": { "server": "search-service", "tool": "huggingface_search" }
+        },
+        "outputTransform": {
+          "mappings": {
+            "results": {
+              "over": "$.models",
+              "fields": {
+                "title": { "path": "$.id" },
+                "url": { "path": "$.url" },
+                "snippet": { "path": "$.description", "default": "" },
+                "source": { "value": "huggingface" }
+              }
+            }
+          }
+        }
+      },
+      {
+        "name": "multi_source_search",
+        "version": "1.0.0",
+        "description": "Search across 4 sources in parallel",
+        "implementation": {
+          "composition": {
+            "scatterGather": {
+              "targets": [
+                { "tool": "normalized_exa", "version": "1.*" },
+                { "tool": "normalized_arxiv", "version": "1.*" },
+                { "tool": "normalized_github", "version": "1.*", "optional": true },
+                { "tool": "normalized_huggingface", "version": "1.*" }
+              ],
+              "aggregation": [
+                { "extract": { "path": "$.results" } },
+                { "flatten": true },
+                { "dedupe": { "field": "$.url" } },
+                { "wrap": { "field": "results" } }
+              ],
+              "timeoutMs": 30000
+            }
+          }
+        }
+      }
+    ]
+  },
+
+  "backends": {
+    "search-service": {
+      "exa_search": {
+        "response": {
+          "query": "transformers",
+          "results": [
+            {
+              "title": "An Introduction to Transformers",
+              "url": "https://example.com/transformers-intro",
+              "text": "Transformers have revolutionized NLP since their introduction.",
+              "score": 0.95
+            }
+          ]
+        }
+      },
+      "arxiv_search": {
+        "response": {
+          "query": "transformers",
+          "papers": [
+            {
+              "arxiv_id": "1706.03762",
+              "title": "Attention Is All You Need",
+              "abstract": "The dominant sequence transduction models are based on complex recurrent or convolutional neural networks.",
+              "pdf_url": "https://arxiv.org/pdf/1706.03762",
+              "authors": ["Ashish Vaswani"]
+            }
+          ]
+        }
+      },
+      "github_search": {
+        "error": "GitHub API rate limit exceeded (403)"
+      },
+      "huggingface_search": {
+        "response": {
+          "query": "transformers",
+          "models": [
+            {
+              "id": "google-bert/bert-base-uncased",
+              "url": "https://huggingface.co/google-bert/bert-base-uncased",
+              "description": "Pretrained model on English language using a masked language modeling objective.",
+              "downloads": 50000000
+            }
+          ]
+        }
+      }
+    }
+  },
+
+  "cases": [
+    {
+      "name": "3 of 4 sources succeed, github fails gracefully",
+      "toolCall": {
+        "tool": "multi_source_search",
+        "arguments": { "query": "transformers" },
+        "expectedResponse": {
+          "results": [
+            {
+              "title": "An Introduction to Transformers",
+              "url": "https://example.com/transformers-intro",
+              "snippet": "Transformers have revolutionized NLP since their introduction.",
+              "source": "exa"
+            },
+            {
+              "title": "Attention Is All You Need",
+              "url": "https://arxiv.org/pdf/1706.03762",
+              "snippet": "The dominant sequence transduction models are based on complex recurrent or convolutional neural networks.",
+              "source": "arxiv"
+            },
+            {
+              "title": "google-bert/bert-base-uncased",
+              "url": "https://huggingface.co/google-bert/bert-base-uncased",
+              "snippet": "Pretrained model on English language using a masked language modeling objective.",
+              "source": "huggingface"
+            }
+          ],
+          "errors": [
+            {
+              "target": "normalized_github",
+              "error": "GitHub API rate limit exceeded (403)"
+            }
+          ]
+        }
+      }
+    }
+  ]
+}

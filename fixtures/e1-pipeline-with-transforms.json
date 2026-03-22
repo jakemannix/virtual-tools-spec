@@ -1,0 +1,231 @@
+{
+  "name": "E.1: Pipeline with Output Transform (ecommerce pattern)",
+  "description": "A 3-step pipeline (search → hydrate → personalize) where each step's input is constructed from previous steps' outputs. The final output is projected via an outputTransform to return only the products array. Derived from the ecommerce demo's personalized_search composition.",
+  "requirementsRef": "§4.4.1, §4.3",
+
+  "registry": {
+    "schemaVersion": "1.0",
+    "tools": [
+      {
+        "name": "personalized_search",
+        "version": "1.0.0",
+        "description": "Search, hydrate, and personalize product results",
+        "implementation": {
+          "composition": {
+            "pipeline": {
+              "steps": [
+                {
+                  "id": "search",
+                  "operation": { "tool": "search_index", "version": "1.*" },
+                  "input": {
+                    "construct": {
+                      "fields": {
+                        "query": { "fromInput": { "path": "$.query" } }
+                      }
+                    }
+                  }
+                },
+                {
+                  "id": "hydrate",
+                  "operation": { "tool": "hydrate_products", "version": "1.*" },
+                  "input": {
+                    "construct": {
+                      "fields": {
+                        "product_ids": { "fromStep": { "stepId": "search", "path": "$.matches[*].id" } },
+                        "fields": { "constant": ["id", "name", "price", "category", "description"] }
+                      }
+                    }
+                  }
+                },
+                {
+                  "id": "personalize",
+                  "operation": { "tool": "personalize_ranking", "version": "1.*" },
+                  "input": {
+                    "construct": {
+                      "fields": {
+                        "items": { "fromStep": { "stepId": "hydrate", "path": "$.products" } },
+                        "scores": { "fromStep": { "stepId": "search", "path": "$.matches[*].score" } },
+                        "user_id": { "fromInput": { "path": "$.user_id" } }
+                      }
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        },
+        "outputTransform": {
+          "mappings": {
+            "products": { "path": "$.products" }
+          }
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "query": { "type": "string" },
+            "user_id": { "type": "string" }
+          },
+          "required": ["query", "user_id"]
+        }
+      },
+      {
+        "name": "search_index",
+        "version": "1.0.0",
+        "implementation": {
+          "source": { "server": "catalog-service", "tool": "search_index" }
+        }
+      },
+      {
+        "name": "hydrate_products",
+        "version": "1.0.0",
+        "implementation": {
+          "source": { "server": "catalog-service", "tool": "hydrate_products" }
+        }
+      },
+      {
+        "name": "personalize_ranking",
+        "version": "1.0.0",
+        "implementation": {
+          "source": { "server": "catalog-service", "tool": "personalize_ranking" }
+        }
+      }
+    ]
+  },
+
+  "backends": {
+    "catalog-service": {
+      "search_index": {
+        "response": {
+          "query": "laptop",
+          "matches": [
+            { "id": "PROD-001", "score": 0.95 },
+            { "id": "PROD-002", "score": 0.87 }
+          ],
+          "total": 2
+        }
+      },
+      "hydrate_products": {
+        "response": {
+          "products": [
+            {
+              "id": "PROD-001",
+              "name": "Laptop Pro 15",
+              "price": 1299.99,
+              "category": "Electronics",
+              "description": "High-performance laptop for professionals"
+            },
+            {
+              "id": "PROD-002",
+              "name": "Budget Laptop 14",
+              "price": 599.99,
+              "category": "Electronics",
+              "description": "Affordable everyday laptop"
+            }
+          ],
+          "count": 2
+        }
+      },
+      "personalize_ranking": {
+        "response": {
+          "products": [
+            {
+              "id": "PROD-001",
+              "name": "Laptop Pro 15",
+              "price": 1299.99,
+              "category": "Electronics",
+              "description": "High-performance laptop for professionals",
+              "relevance_score": 0.95,
+              "personalization_boost": 0.1,
+              "final_score": 1.05
+            },
+            {
+              "id": "PROD-002",
+              "name": "Budget Laptop 14",
+              "price": 599.99,
+              "category": "Electronics",
+              "description": "Affordable everyday laptop",
+              "relevance_score": 0.87,
+              "personalization_boost": -0.05,
+              "final_score": 0.82
+            }
+          ],
+          "user_id": "user-42",
+          "preferences_applied": true
+        }
+      }
+    }
+  },
+
+  "cases": [
+    {
+      "name": "3-step pipeline with final output transform",
+      "toolCall": {
+        "tool": "personalized_search",
+        "arguments": { "query": "laptop", "user_id": "user-42" },
+        "expectedBackendCalls": [
+          {
+            "server": "catalog-service",
+            "tool": "search_index",
+            "arguments": { "query": "laptop" }
+          },
+          {
+            "server": "catalog-service",
+            "tool": "hydrate_products",
+            "arguments": {
+              "product_ids": ["PROD-001", "PROD-002"],
+              "fields": ["id", "name", "price", "category", "description"]
+            }
+          },
+          {
+            "server": "catalog-service",
+            "tool": "personalize_ranking",
+            "arguments": {
+              "items": [
+                {
+                  "id": "PROD-001",
+                  "name": "Laptop Pro 15",
+                  "price": 1299.99,
+                  "category": "Electronics",
+                  "description": "High-performance laptop for professionals"
+                },
+                {
+                  "id": "PROD-002",
+                  "name": "Budget Laptop 14",
+                  "price": 599.99,
+                  "category": "Electronics",
+                  "description": "Affordable everyday laptop"
+                }
+              ],
+              "scores": [0.95, 0.87],
+              "user_id": "user-42"
+            }
+          }
+        ],
+        "expectedResponse": {
+          "products": [
+            {
+              "id": "PROD-001",
+              "name": "Laptop Pro 15",
+              "price": 1299.99,
+              "category": "Electronics",
+              "description": "High-performance laptop for professionals",
+              "relevance_score": 0.95,
+              "personalization_boost": 0.1,
+              "final_score": 1.05
+            },
+            {
+              "id": "PROD-002",
+              "name": "Budget Laptop 14",
+              "price": 599.99,
+              "category": "Electronics",
+              "description": "Affordable everyday laptop",
+              "relevance_score": 0.87,
+              "personalization_boost": -0.05,
+              "final_score": 0.82
+            }
+          ]
+        }
+      }
+    }
+  ]
+}
