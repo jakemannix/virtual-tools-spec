@@ -16,9 +16,11 @@ for the full requirements specification.
 
 ```bash
 npm install
-npm test              # 56 acceptance tests
+npm test              # 150 acceptance tests
 npm run build         # Compile TypeScript
 npm run generate      # Regenerate schema.json + openapi.yaml
+npm run editor        # Launch visual editor at http://localhost:3001
+npm run editor:demo   # Launch with b5-lineage fixture preloaded
 ```
 
 ## Repository structure

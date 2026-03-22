@@ -38,7 +38,9 @@
     "generate:openapi": "tsx src/generate-openapi.ts > openapi.yaml",
     "generate": "npm run generate:json-schema && npm run generate:openapi",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "editor": "tsx editor/server.ts",
+    "editor:demo": "tsx editor/server.ts --fixture fixtures/b5-lineage.json"
   },
   "dependencies": {
     "@a2a-js/sdk": "^0.3.13",

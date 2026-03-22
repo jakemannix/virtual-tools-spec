@@ -1,0 +1,1339 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Virtual Tools Editor</title>
+<style>
+:root {
+  --bg: #0f1419;
+  --bg-panel: #1a1f2e;
+  --bg-card: #232a3b;
+  --bg-input: #181d2a;
+  --border: #2d3548;
+  --border-focus: #4fa6e5;
+  --text: #e0e6ed;
+  --text-dim: #8892a4;
+  --text-label: #a0aab8;
+  --accent: #4fa6e5;
+  --accent-hover: #3a8fd0;
+  --green: #4ec9a0;
+  --red: #e55c6c;
+  --orange: #e5a04f;
+  --yellow: #d4d080;
+  --purple: #b48ead;
+  --radius: 6px;
+  --mono: 'Fira Code', 'SF Mono', 'Cascadia Code', monospace;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  font-family: -apple-system, 'Segoe UI', system-ui, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* Header */
+header {
+  background: var(--bg-panel);
+  border-bottom: 1px solid var(--border);
+  padding: 10px 20px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-shrink: 0;
+}
+header h1 { font-size: 16px; font-weight: 600; }
+header .spacer { flex: 1; }
+header button {
+  padding: 6px 14px;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  background: var(--bg-card);
+  color: var(--text);
+  cursor: pointer;
+  font-size: 13px;
+}
+header button:hover { border-color: var(--accent); }
+header button.primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+header button.primary:hover { background: var(--accent-hover); }
+
+/* Layout */
+.layout {
+  display: grid;
+  grid-template-columns: 260px 1fr 400px;
+  flex: 1;
+  overflow: hidden;
+}
+
+/* Left panel — registry browser */
+.panel-left {
+  background: var(--bg-panel);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.panel-left h2 {
+  font-size: 13px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-dim);
+  padding: 12px 14px 8px;
+}
+.panel-left input[type="search"] {
+  margin: 0 10px 8px;
+  padding: 6px 10px;
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text);
+  font-size: 13px;
+  outline: none;
+}
+.panel-left input[type="search"]:focus { border-color: var(--border-focus); }
+
+.tool-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0 10px 10px;
+}
+.tool-item {
+  padding: 8px 10px;
+  margin-bottom: 4px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: border-color 0.15s;
+}
+.tool-item:hover { border-color: var(--accent); }
+.tool-item .name { font-size: 13px; font-weight: 500; }
+.tool-item .meta { font-size: 11px; color: var(--text-dim); margin-top: 2px; }
+.tool-item .version { color: var(--green); }
+.tool-item .env { color: var(--orange); }
+
+/* Center panel — editor */
+.panel-center {
+  overflow-y: auto;
+  padding: 20px;
+}
+
+.editor-section {
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px;
+  margin-bottom: 16px;
+}
+.editor-section h3 {
+  font-size: 14px;
+  font-weight: 600;
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.editor-section h3 .badge {
+  font-size: 10px;
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-weight: 500;
+  text-transform: uppercase;
+}
+.badge-source { background: #1a3a2a; color: var(--green); }
+.badge-scatter { background: #3a2a1a; color: var(--orange); }
+.badge-pipeline { background: #2a1a3a; color: var(--purple); }
+
+.form-row {
+  display: grid;
+  grid-template-columns: 120px 1fr;
+  gap: 8px;
+  align-items: start;
+  margin-bottom: 10px;
+}
+.form-row label {
+  font-size: 12px;
+  color: var(--text-label);
+  padding-top: 7px;
+  text-align: right;
+}
+.form-row input, .form-row select, .form-row textarea {
+  padding: 6px 10px;
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text);
+  font-size: 13px;
+  font-family: inherit;
+  outline: none;
+}
+.form-row input:focus, .form-row select:focus, .form-row textarea:focus {
+  border-color: var(--border-focus);
+}
+.form-row textarea { resize: vertical; min-height: 60px; font-family: var(--mono); font-size: 12px; }
+.form-row select { cursor: pointer; }
+
+.form-row .help {
+  font-size: 11px;
+  color: var(--text-dim);
+  margin-top: 3px;
+}
+
+/* Tag-style list inputs */
+.tag-input {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 4px 6px;
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  min-height: 34px;
+  align-items: center;
+}
+.tag-input:focus-within { border-color: var(--border-focus); }
+.tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  background: var(--bg-card);
+  border-radius: 3px;
+  font-size: 12px;
+}
+.tag button {
+  background: none;
+  border: none;
+  color: var(--text-dim);
+  cursor: pointer;
+  padding: 0 2px;
+  font-size: 14px;
+}
+.tag-input input {
+  border: none;
+  background: transparent;
+  flex: 1;
+  min-width: 80px;
+  padding: 2px 4px;
+}
+
+/* Targets / steps list */
+.list-editor { margin-top: 8px; }
+.list-item {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 10px;
+  margin-bottom: 6px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.list-item .num {
+  width: 24px;
+  height: 24px;
+  background: var(--bg-panel);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+.list-item .fields { flex: 1; display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+.list-item input, .list-item select {
+  padding: 4px 8px;
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text);
+  font-size: 12px;
+  outline: none;
+}
+.list-item input:focus { border-color: var(--border-focus); }
+.list-item .remove {
+  background: none;
+  border: none;
+  color: var(--text-dim);
+  cursor: pointer;
+  font-size: 16px;
+  padding: 4px;
+}
+.list-item .remove:hover { color: var(--red); }
+
+.add-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 12px;
+  background: var(--bg-card);
+  border: 1px dashed var(--border);
+  border-radius: var(--radius);
+  color: var(--text-dim);
+  cursor: pointer;
+  font-size: 12px;
+  margin-top: 6px;
+}
+.add-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+/* Type selector tabs */
+.type-tabs {
+  display: flex;
+  gap: 2px;
+  margin-bottom: 16px;
+  background: var(--bg-card);
+  border-radius: var(--radius);
+  padding: 3px;
+}
+.type-tab {
+  flex: 1;
+  padding: 8px;
+  text-align: center;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 500;
+  border: none;
+  background: transparent;
+  color: var(--text-dim);
+  transition: all 0.15s;
+}
+.type-tab:hover { color: var(--text); }
+.type-tab.active { background: var(--bg-panel); color: var(--text); }
+
+/* Right panel — output */
+.panel-right {
+  background: var(--bg-panel);
+  border-left: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.panel-right h2 {
+  font-size: 13px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-dim);
+  padding: 12px 14px 0;
+}
+
+.output-tabs {
+  display: flex;
+  gap: 0;
+  padding: 8px 14px;
+  border-bottom: 1px solid var(--border);
+}
+.output-tab {
+  padding: 6px 12px;
+  border: none;
+  background: transparent;
+  color: var(--text-dim);
+  cursor: pointer;
+  font-size: 12px;
+  border-bottom: 2px solid transparent;
+}
+.output-tab:hover { color: var(--text); }
+.output-tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+.output-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 10px 14px;
+}
+
+pre.json {
+  font-family: var(--mono);
+  font-size: 12px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.json .key { color: var(--accent); }
+.json .str { color: var(--green); }
+.json .num { color: var(--yellow); }
+.json .bool { color: var(--purple); }
+.json .null { color: var(--red); }
+
+.validation-msg {
+  padding: 8px 12px;
+  margin: 0 14px 8px;
+  border-radius: var(--radius);
+  font-size: 12px;
+}
+.validation-msg.error { background: #2a1a1a; color: var(--red); border: 1px solid #3a2222; }
+.validation-msg.success { background: #1a2a1a; color: var(--green); border: 1px solid #223a22; }
+.validation-msg.warn { background: #2a2a1a; color: var(--orange); border: 1px solid #3a3a22; }
+
+/* Empty state */
+.empty-state {
+  text-align: center;
+  padding: 60px 20px;
+  color: var(--text-dim);
+}
+.empty-state h3 { font-size: 16px; margin-bottom: 8px; color: var(--text); }
+.empty-state p { font-size: 13px; max-width: 300px; margin: 0 auto; }
+
+/* Key-value editor */
+.kv-editor .kv-row {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 4px;
+  align-items: center;
+}
+.kv-editor input { flex: 1; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Virtual Tools Editor</h1>
+  <div class="spacer"></div>
+  <button onclick="loadFromServer()">Load from Server</button>
+  <button onclick="loadExample()">Load Example</button>
+  <button onclick="saveToServer()">Save All</button>
+  <button onclick="clearAll()">Clear</button>
+  <button class="primary" onclick="copyJSON()">Copy JSON</button>
+</header>
+
+<div class="layout">
+  <!-- Left: Registry browser -->
+  <div class="panel-left">
+    <h2>Registry</h2>
+    <input type="search" id="tool-search" placeholder="Filter tools..." oninput="renderToolList()">
+    <div class="tool-list" id="tool-list"></div>
+    <div style="padding: 10px;">
+      <button class="add-btn" style="width: 100%;" onclick="addNewTool()">+ New Tool</button>
+      <button class="add-btn" style="width: 100%; margin-top: 4px;" onclick="addNewAgent()">+ New Agent</button>
+    </div>
+  </div>
+
+  <!-- Center: Editor -->
+  <div class="panel-center" id="editor">
+    <div class="empty-state" id="empty-state">
+      <h3>No tool selected</h3>
+      <p>Click a tool in the registry panel to edit it, or create a new one.</p>
+    </div>
+    <div id="editor-content" style="display: none;"></div>
+  </div>
+
+  <!-- Right: Output -->
+  <div class="panel-right">
+    <h2>Output</h2>
+    <div class="output-tabs">
+      <button class="output-tab active" onclick="switchOutputTab('tool', this)">Tool JSON</button>
+      <button class="output-tab" onclick="switchOutputTab('registry', this)">Full Registry</button>
+    </div>
+    <div id="validation-area"></div>
+    <div class="output-content">
+      <pre class="json" id="output-json"></pre>
+    </div>
+  </div>
+</div>
+
+<script>
+// ============================================================================
+// State
+// ============================================================================
+
+const state = {
+  tools: [],
+  agents: [],
+  selectedId: null,       // "tool:name:version" or "agent:name"
+  outputTab: "tool",
+};
+
+// ============================================================================
+// Tool/Agent CRUD
+// ============================================================================
+
+function addNewTool() {
+  const name = `new_tool_${state.tools.length + 1}`;
+  const tool = {
+    name,
+    version: "1.0.0",
+    description: "",
+    environment: "",
+    type: "source",   // editor-only: source | scatterGather | pipeline
+    // source fields
+    server: "",
+    backendTool: "",
+    serverVersion: "",
+    projection: [],
+    defaults: {},
+    fieldMapping: {},
+    // scatter-gather fields
+    targets: [],
+    aggregate: [],
+    timeoutMs: null,
+    // pipeline fields
+    steps: [],
+    // common
+    inputSchema: null,
+    outputSchema: null,
+    outputTransform: null,
+    tags: [],
+  };
+  state.tools.push(tool);
+  state.selectedId = `tool:${name}:1.0.0`;
+  render();
+}
+
+function addNewAgent() {
+  const name = `new_agent_${state.agents.length + 1}`;
+  const agent = {
+    name,
+    version: "1.0.0",
+    url: "https://example.com/" + name,
+    environment: "stage",
+    description: "",
+    dependencies: [],
+  };
+  state.agents.push(agent);
+  state.selectedId = `agent:${name}`;
+  render();
+}
+
+function getSelected() {
+  if (!state.selectedId) return null;
+  const [type, ...rest] = state.selectedId.split(":");
+  if (type === "tool") {
+    const version = rest.pop();
+    const name = rest.join(":");
+    return { type: "tool", item: state.tools.find(t => t.name === name && t.version === version) };
+  } else {
+    const name = rest.join(":");
+    return { type: "agent", item: state.agents.find(a => a.name === name) };
+  }
+}
+
+function deleteTool(name, version) {
+  state.tools = state.tools.filter(t => !(t.name === name && t.version === version));
+  if (state.selectedId === `tool:${name}:${version}`) state.selectedId = null;
+  render();
+}
+
+function deleteAgent(name) {
+  state.agents = state.agents.filter(a => a.name !== name);
+  if (state.selectedId === `agent:${name}`) state.selectedId = null;
+  render();
+}
+
+// ============================================================================
+// Rendering — left panel
+// ============================================================================
+
+function renderToolList() {
+  const filter = (document.getElementById("tool-search").value || "").toLowerCase();
+  const list = document.getElementById("tool-list");
+  let html = "";
+
+  // Tools
+  const filteredTools = state.tools.filter(t =>
+    t.name.toLowerCase().includes(filter) || (t.description || "").toLowerCase().includes(filter)
+  );
+  if (filteredTools.length > 0) {
+    html += `<div style="padding: 4px 0; font-size: 11px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.5px;">Tools</div>`;
+    for (const t of filteredTools) {
+      const id = `tool:${t.name}:${t.version}`;
+      const sel = state.selectedId === id ? "border-color: var(--accent);" : "";
+      const badge = t.type === "source" ? "SRC" : t.type === "scatterGather" ? "S/G" : "PIPE";
+      html += `<div class="tool-item" style="${sel}" onclick="selectItem('${id}')">
+        <div class="name">${esc(t.name)} <span class="version">${esc(t.version)}</span></div>
+        <div class="meta">${badge}${t.environment ? ` · <span class="env">${esc(t.environment)}</span>` : ""}</div>
+      </div>`;
+    }
+  }
+
+  // Agents
+  const filteredAgents = state.agents.filter(a =>
+    a.name.toLowerCase().includes(filter)
+  );
+  if (filteredAgents.length > 0) {
+    html += `<div style="padding: 8px 0 4px; font-size: 11px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.5px;">Agents</div>`;
+    for (const a of filteredAgents) {
+      const id = `agent:${a.name}`;
+      const sel = state.selectedId === id ? "border-color: var(--accent);" : "";
+      html += `<div class="tool-item" style="${sel}" onclick="selectItem('${id}')">
+        <div class="name">${esc(a.name)} <span class="version">${esc(a.version)}</span></div>
+        <div class="meta">AGENT · <span class="env">${esc(a.environment)}</span> · ${a.dependencies.length} deps</div>
+      </div>`;
+    }
+  }
+
+  if (!html) html = `<div style="padding: 20px; text-align: center; color: var(--text-dim); font-size: 12px;">No items. Click + to create.</div>`;
+  list.innerHTML = html;
+}
+
+function selectItem(id) {
+  state.selectedId = id;
+  render();
+}
+
+// ============================================================================
+// Rendering — center panel (editor)
+// ============================================================================
+
+function renderEditor() {
+  const sel = getSelected();
+  const empty = document.getElementById("empty-state");
+  const content = document.getElementById("editor-content");
+
+  if (!sel) {
+    empty.style.display = "";
+    content.style.display = "none";
+    return;
+  }
+  empty.style.display = "none";
+  content.style.display = "";
+
+  if (sel.type === "tool") {
+    content.innerHTML = renderToolEditor(sel.item);
+  } else {
+    content.innerHTML = renderAgentEditor(sel.item);
+  }
+}
+
+function renderToolEditor(t) {
+  return `
+    <div class="editor-section">
+      <h3>Tool Definition</h3>
+      <div class="form-row">
+        <label>Name</label>
+        <input value="${esc(t.name)}" onchange="updateTool('name', this.value)">
+      </div>
+      <div class="form-row">
+        <label>Version</label>
+        <input value="${esc(t.version)}" onchange="updateTool('version', this.value)" placeholder="1.0.0">
+      </div>
+      <div class="form-row">
+        <label>Description</label>
+        <input value="${esc(t.description)}" onchange="updateTool('description', this.value)">
+      </div>
+      <div class="form-row">
+        <label>Environment</label>
+        <select onchange="updateTool('environment', this.value)">
+          <option value="" ${!t.environment ? "selected" : ""}>—</option>
+          <option value="prod" ${t.environment === "prod" ? "selected" : ""}>prod</option>
+          <option value="stage" ${t.environment === "stage" ? "selected" : ""}>stage</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="editor-section">
+      <h3>Implementation</h3>
+      <div class="type-tabs">
+        <button class="type-tab ${t.type === "source" ? "active" : ""}" onclick="updateTool('type', 'source')">Source</button>
+        <button class="type-tab ${t.type === "scatterGather" ? "active" : ""}" onclick="updateTool('type', 'scatterGather')">Scatter-Gather</button>
+        <button class="type-tab ${t.type === "pipeline" ? "active" : ""}" onclick="updateTool('type', 'pipeline')">Pipeline</button>
+      </div>
+      ${t.type === "source" ? renderSourceForm(t) : ""}
+      ${t.type === "scatterGather" ? renderScatterGatherForm(t) : ""}
+      ${t.type === "pipeline" ? renderPipelineForm(t) : ""}
+    </div>
+  `;
+}
+
+function renderSourceForm(t) {
+  return `
+    <div class="form-row">
+      <label>Server</label>
+      <input value="${esc(t.server)}" onchange="updateTool('server', this.value)" placeholder="search-service">
+    </div>
+    <div class="form-row">
+      <label>Backend Tool</label>
+      <input value="${esc(t.backendTool)}" onchange="updateTool('backendTool', this.value)" placeholder="raw_search">
+    </div>
+    <div class="form-row">
+      <label>Server Version</label>
+      <input value="${esc(t.serverVersion)}" onchange="updateTool('serverVersion', this.value)" placeholder="3.*">
+    </div>
+    <div class="form-row">
+      <label>Projection</label>
+      <div>
+        <input value="${esc(t.projection.join(", "))}" onchange="updateTool('projection', this.value.split(',').map(s=>s.trim()).filter(Boolean))" placeholder="region, format">
+        <div class="help">Fields to remove from agent-facing schema (comma-separated)</div>
+      </div>
+    </div>
+    <div class="form-row">
+      <label>Defaults</label>
+      <div>
+        <textarea onchange="updateToolJSON('defaults', this.value)">${esc(JSON.stringify(t.defaults, null, 2))}</textarea>
+        <div class="help">JSON: {"api_key": "\${ENV.KEY}"}</div>
+      </div>
+    </div>
+    <div class="form-row">
+      <label>Field Mapping</label>
+      <div>
+        <textarea onchange="updateToolJSON('fieldMapping', this.value)">${esc(JSON.stringify(t.fieldMapping, null, 2))}</textarea>
+        <div class="help">JSON: {"agent_name": "backend_name"}</div>
+      </div>
+    </div>
+  `;
+}
+
+function renderScatterGatherForm(t) {
+  let targetsHtml = "";
+  t.targets.forEach((tgt, i) => {
+    const name = typeof tgt === "string" ? tgt : tgt.tool;
+    const ver = typeof tgt === "string" ? "" : (tgt.version || "");
+    const opt = typeof tgt === "string" ? false : !!tgt.optional;
+    targetsHtml += `
+      <div class="list-item">
+        <div class="num">${i + 1}</div>
+        <div class="fields">
+          <input value="${esc(name)}" placeholder="tool name" style="width:140px" onchange="updateTarget(${i}, 'tool', this.value)">
+          <input value="${esc(ver)}" placeholder="version" style="width:80px" onchange="updateTarget(${i}, 'version', this.value)">
+          <label style="font-size:11px; color:var(--text-dim); display:flex; align-items:center; gap:4px;">
+            <input type="checkbox" ${opt ? "checked" : ""} onchange="updateTarget(${i}, 'optional', this.checked)"> optional
+          </label>
+        </div>
+        <button class="remove" onclick="removeTarget(${i})">×</button>
+      </div>`;
+  });
+
+  return `
+    <h3 style="font-size:13px; margin-bottom:8px;">Targets</h3>
+    <div class="list-editor">${targetsHtml}</div>
+    <button class="add-btn" onclick="addTarget()">+ Add Target</button>
+
+    <div class="form-row" style="margin-top:12px;">
+      <label>Aggregate</label>
+      <div>
+        <input value="${esc(t.aggregate.join(", "))}" onchange="updateTool('aggregate', this.value.split(',').map(s=>s.trim()).filter(Boolean))" placeholder="extract:$.results, flatten, dedupe:$.url">
+        <div class="help">Shorthand: flatten, merge, extract:$.path, dedupe:$.field, limit:N, sort_asc:$.f, sort_desc:$.f, wrap:field</div>
+      </div>
+    </div>
+    <div class="form-row">
+      <label>Timeout (ms)</label>
+      <input type="number" value="${t.timeoutMs || ""}" onchange="updateTool('timeoutMs', this.value ? parseInt(this.value) : null)" placeholder="5000">
+    </div>
+  `;
+}
+
+function renderPipelineForm(t) {
+  let stepsHtml = "";
+  t.steps.forEach((step, i) => {
+    stepsHtml += `
+      <div class="list-item" style="flex-direction:column; align-items:stretch;">
+        <div style="display:flex; align-items:center; gap:8px;">
+          <div class="num">${i + 1}</div>
+          <div class="fields">
+            <input value="${esc(step.id)}" placeholder="step id" style="width:100px" onchange="updateStep(${i}, 'id', this.value)">
+            <input value="${esc(step.tool || "")}" placeholder="tool name" style="width:140px" onchange="updateStep(${i}, 'tool', this.value)">
+            <input value="${esc(step.version || "")}" placeholder="version" style="width:80px" onchange="updateStep(${i}, 'version', this.value)">
+          </div>
+          <button class="remove" onclick="removeStep(${i})">×</button>
+        </div>
+        ${step.inputType ? `
+        <div style="padding: 6px 0 0 32px; display:flex; gap:6px; align-items:center; font-size:12px;">
+          <select onchange="updateStep(${i}, 'inputType', this.value)" style="font-size:11px;">
+            <option value="">No binding</option>
+            <option value="fromStep" ${step.inputType === "fromStep" ? "selected" : ""}>From step</option>
+            <option value="fromInput" ${step.inputType === "fromInput" ? "selected" : ""}>From input</option>
+            <option value="constant" ${step.inputType === "constant" ? "selected" : ""}>Constant</option>
+          </select>
+          ${step.inputType === "fromStep" ? `
+            <input value="${esc(step.inputStepId || "")}" placeholder="step ID" style="width:80px" onchange="updateStep(${i}, 'inputStepId', this.value)">
+            <input value="${esc(step.inputPath || "")}" placeholder="$.path" style="width:120px" onchange="updateStep(${i}, 'inputPath', this.value)">
+          ` : ""}
+          ${step.inputType === "fromInput" ? `
+            <input value="${esc(step.inputPath || "")}" placeholder="$.path" style="width:160px" onchange="updateStep(${i}, 'inputPath', this.value)">
+          ` : ""}
+        </div>` : `
+        <div style="padding: 6px 0 0 32px;">
+          <select onchange="updateStep(${i}, 'inputType', this.value)" style="font-size:11px; color:var(--text-dim);">
+            <option value="">No input binding</option>
+            <option value="fromStep">From step</option>
+            <option value="fromInput">From input</option>
+            <option value="constant">Constant</option>
+          </select>
+        </div>`}
+      </div>`;
+  });
+
+  return `
+    <h3 style="font-size:13px; margin-bottom:8px;">Steps</h3>
+    <div class="list-editor">${stepsHtml}</div>
+    <button class="add-btn" onclick="addStep()">+ Add Step</button>
+  `;
+}
+
+function renderAgentEditor(a) {
+  let depsHtml = "";
+  a.dependencies.forEach((dep, i) => {
+    depsHtml += `
+      <div class="list-item">
+        <div class="num">${i + 1}</div>
+        <div class="fields">
+          <input value="${esc(dep.tool)}" placeholder="tool name" style="width:140px" onchange="updateDep(${i}, 'tool', this.value)">
+          <input value="${esc(dep.versionRange)}" placeholder="version range (1.*)" style="width:120px" onchange="updateDep(${i}, 'versionRange', this.value)">
+        </div>
+        <button class="remove" onclick="removeDep(${i})">×</button>
+      </div>`;
+  });
+
+  return `
+    <div class="editor-section">
+      <h3>Agent Definition</h3>
+      <div class="form-row">
+        <label>Name</label>
+        <input value="${esc(a.name)}" onchange="updateAgent('name', this.value)">
+      </div>
+      <div class="form-row">
+        <label>Version</label>
+        <input value="${esc(a.version)}" onchange="updateAgent('version', this.value)" placeholder="1.0.0">
+      </div>
+      <div class="form-row">
+        <label>URL</label>
+        <input value="${esc(a.url)}" onchange="updateAgent('url', this.value)" placeholder="https://...">
+      </div>
+      <div class="form-row">
+        <label>Description</label>
+        <input value="${esc(a.description)}" onchange="updateAgent('description', this.value)">
+      </div>
+      <div class="form-row">
+        <label>Environment</label>
+        <select onchange="updateAgent('environment', this.value)">
+          <option value="stage" ${a.environment === "stage" ? "selected" : ""}>stage</option>
+          <option value="prod" ${a.environment === "prod" ? "selected" : ""}>prod</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="editor-section">
+      <h3>Tool Dependencies</h3>
+      <div class="list-editor">${depsHtml}</div>
+      <button class="add-btn" onclick="addDep()">+ Add Dependency</button>
+    </div>
+  `;
+}
+
+// ============================================================================
+// Update handlers
+// ============================================================================
+
+function updateTool(field, value) {
+  const sel = getSelected();
+  if (!sel || sel.type !== "tool") return;
+  const old = sel.item;
+  // Handle ID change for selectedId tracking
+  if (field === "name" || field === "version") {
+    const oldId = state.selectedId;
+    old[field] = value;
+    state.selectedId = `tool:${old.name}:${old.version}`;
+  } else {
+    old[field] = value;
+  }
+  render();
+}
+
+function updateToolJSON(field, value) {
+  const sel = getSelected();
+  if (!sel || sel.type !== "tool") return;
+  try {
+    sel.item[field] = JSON.parse(value);
+  } catch (e) { /* ignore invalid JSON while typing */ }
+  renderOutput();
+}
+
+function updateAgent(field, value) {
+  const sel = getSelected();
+  if (!sel || sel.type !== "agent") return;
+  const old = sel.item;
+  if (field === "name") {
+    old.name = value;
+    state.selectedId = `agent:${value}`;
+  } else {
+    old[field] = value;
+  }
+  render();
+}
+
+// Scatter-gather targets
+function addTarget() {
+  const sel = getSelected();
+  if (!sel || sel.type !== "tool") return;
+  sel.item.targets.push({ tool: "", optional: false });
+  render();
+}
+function removeTarget(i) {
+  const sel = getSelected();
+  if (!sel || sel.type !== "tool") return;
+  sel.item.targets.splice(i, 1);
+  render();
+}
+function updateTarget(i, field, value) {
+  const sel = getSelected();
+  if (!sel || sel.type !== "tool") return;
+  const tgt = sel.item.targets[i];
+  if (typeof tgt === "string") {
+    sel.item.targets[i] = { tool: tgt };
+  }
+  sel.item.targets[i][field] = value;
+  render();
+}
+
+// Pipeline steps
+function addStep() {
+  const sel = getSelected();
+  if (!sel || sel.type !== "tool") return;
+  sel.item.steps.push({ id: `step_${sel.item.steps.length + 1}`, tool: "", inputType: "", inputStepId: "", inputPath: "" });
+  render();
+}
+function removeStep(i) {
+  const sel = getSelected();
+  if (!sel || sel.type !== "tool") return;
+  sel.item.steps.splice(i, 1);
+  render();
+}
+function updateStep(i, field, value) {
+  const sel = getSelected();
+  if (!sel || sel.type !== "tool") return;
+  sel.item.steps[i][field] = value;
+  render();
+}
+
+// Agent dependencies
+function addDep() {
+  const sel = getSelected();
+  if (!sel || sel.type !== "agent") return;
+  sel.item.dependencies.push({ tool: "", versionRange: "*" });
+  render();
+}
+function removeDep(i) {
+  const sel = getSelected();
+  if (!sel || sel.type !== "agent") return;
+  sel.item.dependencies.splice(i, 1);
+  render();
+}
+function updateDep(i, field, value) {
+  const sel = getSelected();
+  if (!sel || sel.type !== "agent") return;
+  sel.item.dependencies[i][field] = value;
+  renderOutput();
+}
+
+// ============================================================================
+// Convert editor state → spec types
+// ============================================================================
+
+function toolToSpec(t) {
+  const def = {
+    name: t.name,
+    version: t.version,
+    description: t.description || undefined,
+    environment: t.environment || undefined,
+    tags: t.tags.length ? t.tags : undefined,
+  };
+
+  if (t.type === "source") {
+    def.implementation = {
+      source: {
+        server: t.server,
+        tool: t.backendTool,
+        serverVersion: t.serverVersion || undefined,
+        projection: t.projection.length ? t.projection : undefined,
+        defaults: Object.keys(t.defaults).length ? t.defaults : undefined,
+        fieldMapping: Object.keys(t.fieldMapping).length ? t.fieldMapping : undefined,
+      },
+    };
+  } else if (t.type === "scatterGather") {
+    const targets = t.targets.map(tgt => {
+      if (typeof tgt === "string") return { tool: tgt };
+      const out = { tool: tgt.tool };
+      if (tgt.version) out.version = tgt.version;
+      if (tgt.optional) out.optional = true;
+      return out;
+    }).filter(tgt => tgt.tool);
+    def.implementation = {
+      composition: {
+        scatterGather: {
+          targets,
+          aggregation: t.aggregate.length ? t.aggregate.map(expandAgg) : undefined,
+          timeoutMs: t.timeoutMs || undefined,
+        },
+      },
+    };
+  } else if (t.type === "pipeline") {
+    const steps = t.steps.filter(s => s.id && s.tool).map(s => {
+      const step = {
+        id: s.id,
+        operation: { tool: s.tool },
+      };
+      if (s.version) step.operation.version = s.version;
+      if (s.inputType === "fromStep" && s.inputStepId) {
+        step.input = { fromStep: { stepId: s.inputStepId, path: s.inputPath || "$" } };
+      } else if (s.inputType === "fromInput") {
+        step.input = { fromInput: { path: s.inputPath || "$" } };
+      }
+      return step;
+    });
+    def.implementation = {
+      composition: { pipeline: { steps } },
+    };
+  }
+
+  return def;
+}
+
+function agentToSpec(a) {
+  return {
+    agentCard: {
+      name: a.name,
+      version: a.version,
+      url: a.url,
+      protocolVersion: "0.2.1",
+      capabilities: {},
+      defaultInputModes: ["text/plain"],
+      defaultOutputModes: ["text/plain"],
+      skills: [],
+      description: a.description || `Agent: ${a.name}`,
+    },
+    environment: a.environment,
+    dependencies: a.dependencies.filter(d => d.tool),
+  };
+}
+
+function buildRegistry() {
+  return {
+    schemaVersion: "1.0",
+    tools: state.tools.map(toolToSpec),
+    agents: state.agents.map(agentToSpec),
+  };
+}
+
+function expandAgg(s) {
+  if (typeof s !== "string") return s;
+  if (s === "flatten") return { flatten: true };
+  if (s === "merge") return { merge: true };
+  const [prefix, arg] = s.includes(":") ? [s.slice(0, s.indexOf(":")), s.slice(s.indexOf(":") + 1)] : [s, ""];
+  switch (prefix) {
+    case "extract": return { extract: { path: arg } };
+    case "dedupe": return { dedupe: { field: arg } };
+    case "sort_asc": return { sort: { field: arg, order: "asc" } };
+    case "sort_desc": return { sort: { field: arg, order: "desc" } };
+    case "limit": return { limit: { count: parseInt(arg) } };
+    case "wrap": return { wrap: { field: arg } };
+    default: return s;
+  }
+}
+
+// ============================================================================
+// Validation (lightweight — checks structure, not full semantic validation)
+// ============================================================================
+
+function validate() {
+  const msgs = [];
+  for (const t of state.tools) {
+    if (!t.name) msgs.push({ level: "error", text: "Tool has no name" });
+    if (t.type === "source" && !t.server) msgs.push({ level: "warn", text: `${t.name}: no server specified` });
+    if (t.type === "source" && !t.backendTool) msgs.push({ level: "warn", text: `${t.name}: no backend tool specified` });
+    if (t.type === "scatterGather" && t.targets.filter(tgt => (typeof tgt === "string" ? tgt : tgt.tool)).length === 0) {
+      msgs.push({ level: "error", text: `${t.name}: scatter-gather has no targets` });
+    }
+    if (t.type === "pipeline" && t.steps.filter(s => s.id && s.tool).length === 0) {
+      msgs.push({ level: "error", text: `${t.name}: pipeline has no steps` });
+    }
+  }
+  for (const a of state.agents) {
+    if (!a.name) msgs.push({ level: "error", text: "Agent has no name" });
+    for (const dep of a.dependencies) {
+      if (dep.tool && !state.tools.some(t => t.name === dep.tool)) {
+        msgs.push({ level: "warn", text: `Agent "${a.name}" depends on "${dep.tool}" which isn't in the registry` });
+      }
+    }
+  }
+  if (msgs.length === 0) msgs.push({ level: "success", text: `Valid: ${state.tools.length} tool(s), ${state.agents.length} agent(s)` });
+  return msgs;
+}
+
+// ============================================================================
+// Output rendering
+// ============================================================================
+
+function renderOutput() {
+  const area = document.getElementById("validation-area");
+  const msgs = validate();
+  area.innerHTML = msgs.map(m =>
+    `<div class="validation-msg ${m.level}">${esc(m.text)}</div>`
+  ).join("");
+
+  const json = document.getElementById("output-json");
+  const sel = getSelected();
+
+  if (state.outputTab === "tool" && sel) {
+    const spec = sel.type === "tool" ? toolToSpec(sel.item) : agentToSpec(sel.item);
+    json.innerHTML = syntaxHighlight(JSON.stringify(spec, null, 2));
+  } else {
+    json.innerHTML = syntaxHighlight(JSON.stringify(buildRegistry(), null, 2));
+  }
+}
+
+function switchOutputTab(tab, el) {
+  state.outputTab = tab;
+  document.querySelectorAll(".output-tab").forEach(t => t.classList.remove("active"));
+  el.classList.add("active");
+  renderOutput();
+}
+
+function syntaxHighlight(json) {
+  return json.replace(/("(\\u[\da-fA-F]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g, (match) => {
+    let cls = "num";
+    if (/^"/.test(match)) {
+      cls = /:$/.test(match) ? "key" : "str";
+    } else if (/true|false/.test(match)) {
+      cls = "bool";
+    } else if (/null/.test(match)) {
+      cls = "null";
+    }
+    return `<span class="${cls}">${match}</span>`;
+  });
+}
+
+// ============================================================================
+// Actions
+// ============================================================================
+
+function copyJSON() {
+  const sel = getSelected();
+  let obj;
+  if (state.outputTab === "tool" && sel) {
+    obj = sel.type === "tool" ? toolToSpec(sel.item) : agentToSpec(sel.item);
+  } else {
+    obj = buildRegistry();
+  }
+  navigator.clipboard.writeText(JSON.stringify(obj, null, 2));
+}
+
+function clearAll() {
+  state.tools = [];
+  state.agents = [];
+  state.selectedId = null;
+  render();
+}
+
+function loadExample() {
+  state.tools = [
+    {
+      name: "normalized_arxiv", version: "1.0.0", description: "Normalized arXiv search",
+      environment: "prod", type: "source", server: "search-service", backendTool: "arxiv_search",
+      serverVersion: "", projection: [], defaults: {},
+      fieldMapping: {}, targets: [], aggregate: [], timeoutMs: null, steps: [], tags: [],
+      inputSchema: null, outputSchema: null, outputTransform: null,
+    },
+    {
+      name: "normalized_github", version: "1.0.0", description: "Normalized GitHub search",
+      environment: "prod", type: "source", server: "search-service", backendTool: "github_search",
+      serverVersion: "", projection: [], defaults: {},
+      fieldMapping: {}, targets: [], aggregate: [], timeoutMs: null, steps: [], tags: [],
+      inputSchema: null, outputSchema: null, outputTransform: null,
+    },
+    {
+      name: "normalized_exa", version: "1.0.0", description: "Normalized Exa web search",
+      environment: "prod", type: "source", server: "search-service", backendTool: "exa_search",
+      serverVersion: "", projection: [], defaults: {},
+      fieldMapping: {}, targets: [], aggregate: [], timeoutMs: null, steps: [], tags: [],
+      inputSchema: null, outputSchema: null, outputTransform: null,
+    },
+    {
+      name: "multi_source_search", version: "1.0.0", description: "Search across all sources",
+      environment: "prod", type: "scatterGather", server: "", backendTool: "",
+      serverVersion: "", projection: [], defaults: {}, fieldMapping: {},
+      targets: [
+        { tool: "normalized_arxiv" },
+        { tool: "normalized_github", optional: true },
+        { tool: "normalized_exa" },
+      ],
+      aggregate: ["extract:$.results", "flatten", "dedupe:$.url", "limit:20"],
+      timeoutMs: 10000, steps: [], tags: [],
+      inputSchema: null, outputSchema: null, outputTransform: null,
+    },
+    {
+      name: "research_and_fetch", version: "1.0.0", description: "Search then fetch top results",
+      environment: "prod", type: "pipeline", server: "", backendTool: "",
+      serverVersion: "", projection: [], defaults: {}, fieldMapping: {},
+      targets: [], aggregate: [], timeoutMs: null,
+      steps: [
+        { id: "search", tool: "multi_source_search", version: "", inputType: "", inputStepId: "", inputPath: "" },
+        { id: "fetch", tool: "batch_fetch", version: "", inputType: "fromStep", inputStepId: "search", inputPath: "$.results[*].url" },
+      ],
+      tags: [],
+      inputSchema: null, outputSchema: null, outputTransform: null,
+    },
+  ];
+  state.agents = [
+    {
+      name: "research-agent", version: "1.0.0",
+      url: "https://example.com/research-agent",
+      environment: "prod", description: "Research assistant",
+      dependencies: [
+        { tool: "multi_source_search", versionRange: "1.*" },
+        { tool: "research_and_fetch", versionRange: "1.*" },
+      ],
+    },
+  ];
+  state.selectedId = "tool:multi_source_search:1.0.0";
+  render();
+}
+
+// ============================================================================
+// Utilities
+// ============================================================================
+
+function esc(s) { return String(s || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;"); }
+
+function render() {
+  renderToolList();
+  renderEditor();
+  renderOutput();
+}
+
+// ============================================================================
+// Server API integration
+// ============================================================================
+
+const API = window.location.origin + "/api";
+
+async function loadFromServer() {
+  try {
+    const [toolsRes, agentsRes] = await Promise.all([
+      fetch(API + "/tools").then(r => r.json()),
+      fetch(API + "/agents").then(r => r.json()),
+    ]);
+    // Convert spec ToolDefinitions back to editor format
+    state.tools = (toolsRes.tools || []).map(specToEditorTool);
+    state.agents = (agentsRes.agents || []).map(specToEditorAgent);
+    state.selectedId = null;
+    render();
+    showFlash("Loaded from server: " + state.tools.length + " tools, " + state.agents.length + " agents", "success");
+  } catch (e) {
+    showFlash("Failed to load from server: " + e.message, "error");
+  }
+}
+
+async function saveToServer() {
+  const registry = buildRegistry();
+  try {
+    const res = await fetch(API + "/compile", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ tools: registry.tools, agents: registry.agents }),
+    });
+    const body = await res.json();
+    if (res.ok) {
+      showFlash("Saved and validated successfully", "success");
+    } else {
+      const msgs = (body.violations || []).map(v => v.message).join("; ");
+      showFlash("Validation failed: " + msgs, "error");
+    }
+  } catch (e) {
+    showFlash("Failed to save: " + e.message, "error");
+  }
+}
+
+function specToEditorTool(spec) {
+  const t = {
+    name: spec.name, version: spec.version,
+    description: spec.description || "", environment: spec.environment || "",
+    type: "source", server: "", backendTool: "", serverVersion: "",
+    projection: [], defaults: {}, fieldMapping: {},
+    targets: [], aggregate: [], timeoutMs: null, steps: [],
+    tags: spec.tags || [], inputSchema: spec.inputSchema || null,
+    outputSchema: spec.outputSchema || null, outputTransform: spec.outputTransform || null,
+  };
+  if (spec.implementation) {
+    if (spec.implementation.source) {
+      const s = spec.implementation.source;
+      t.type = "source";
+      t.server = s.server || "";
+      t.backendTool = s.tool || "";
+      t.serverVersion = s.serverVersion || "";
+      t.projection = s.projection || [];
+      t.defaults = s.defaults || {};
+      t.fieldMapping = s.fieldMapping || {};
+    } else if (spec.implementation.composition) {
+      const c = spec.implementation.composition;
+      if (c.scatterGather) {
+        t.type = "scatterGather";
+        t.targets = c.scatterGather.targets || [];
+        t.timeoutMs = c.scatterGather.timeoutMs || null;
+        // Convert aggregation ops back to shorthand strings where possible
+        t.aggregate = (c.scatterGather.aggregation || []).map(aggToShorthand);
+      } else if (c.pipeline) {
+        t.type = "pipeline";
+        t.steps = (c.pipeline.steps || []).map(s => {
+          const step = { id: s.id, tool: "", version: "", inputType: "", inputStepId: "", inputPath: "" };
+          if (s.operation && "tool" in s.operation) {
+            step.tool = s.operation.tool;
+            step.version = s.operation.version || "";
+          }
+          if (s.input) {
+            if ("fromStep" in s.input) {
+              step.inputType = "fromStep";
+              step.inputStepId = s.input.fromStep.stepId;
+              step.inputPath = s.input.fromStep.path;
+            } else if ("fromInput" in s.input) {
+              step.inputType = "fromInput";
+              step.inputPath = s.input.fromInput.path;
+            } else if ("constant" in s.input) {
+              step.inputType = "constant";
+            }
+          }
+          return step;
+        });
+      }
+    }
+  }
+  return t;
+}
+
+function specToEditorAgent(spec) {
+  const card = spec.agentCard || {};
+  return {
+    name: card.name || "", version: card.version || "",
+    url: card.url || "", description: card.description || "",
+    environment: spec.environment || "",
+    dependencies: spec.dependencies || [],
+  };
+}
+
+function aggToShorthand(op) {
+  if (op.flatten) return "flatten";
+  if (op.merge) return "merge";
+  if (op.extract) return "extract:" + op.extract.path;
+  if (op.dedupe) return "dedupe:" + op.dedupe.field;
+  if (op.limit) return "limit:" + op.limit.count;
+  if (op.wrap) return "wrap:" + op.wrap.field;
+  if (op.sort) return (op.sort.order === "asc" ? "sort_asc:" : "sort_desc:") + op.sort.field;
+  return JSON.stringify(op);
+}
+
+function showFlash(msg, level) {
+  const area = document.getElementById("validation-area");
+  area.innerHTML = `<div class="validation-msg ${level}">${esc(msg)}</div>`;
+  setTimeout(() => { if (area.firstChild) area.firstChild.style.opacity = "0.5"; }, 3000);
+}
+
+// Initial render — try to load from server, fall back to empty
+fetch(API + "/tools").then(r => r.json()).then(data => {
+  if (data.tools && data.tools.length > 0) {
+    loadFromServer();
+  } else {
+    render();
+  }
+}).catch(() => render());
+</script>
+</body>
+</html>
