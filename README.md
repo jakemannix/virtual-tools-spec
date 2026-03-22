@@ -19,8 +19,64 @@ npm install
 npm test              # 150 acceptance tests
 npm run build         # Compile TypeScript
 npm run generate      # Regenerate schema.json + openapi.yaml
-npm run editor        # Launch visual editor at http://localhost:3001
-npm run editor:demo   # Launch with b5-lineage fixture preloaded
+```
+
+## Try the visual editor
+
+The editor is a browser-based tool builder backed by the reference
+`RegistryService`. It shows how virtual tools are authored, validated,
+and managed through the registry API.
+
+```bash
+# Start with the lineage fixture (2 tools, 2 agents, lifecycle scenarios):
+npm run editor:demo
+
+# Or start empty:
+npm run editor
+```
+
+Open http://localhost:3001. You'll see three panels:
+
+- **Left** — Registry browser: lists all tools and agents currently in the
+  registry. Click one to edit it.
+- **Center** — Form editor: edit the selected tool (source, scatter-gather,
+  or pipeline) or agent. Switch implementation type via tabs.
+- **Right** — Live JSON output with syntax highlighting. Toggle between the
+  selected item's JSON and the full registry snapshot.
+
+**Try it:**
+
+1. Click "Load Example" in the header to populate with a research-assistant
+   scenario (3 source tools, 1 scatter-gather, 1 pipeline, 1 agent).
+2. Click `multi_source_search` in the left panel to see its scatter-gather
+   config — targets, aggregate shorthand (`extract:$.results, flatten,
+   dedupe:$.url, limit:20`), timeout.
+3. Click `research_and_fetch` to see a pipeline with `fromStep` data binding.
+4. Click "Save All" to POST to the server — it runs `compile()` which
+   validates all composition references, agent dependencies, and environment
+   constraints. Errors show as red messages.
+5. Switch the output tab to "Full Registry" to see the complete registry JSON
+   that a data plane would consume.
+
+**The server API** is available while the editor runs:
+
+```bash
+# List tools
+curl http://localhost:3001/api/tools | jq
+
+# Reverse lineage: who depends on search:1.0.0?
+curl "http://localhost:3001/api/lineage/reverse/search?version=1.0.0" | jq
+
+# Try to delete a tool with prod dependents (will be blocked):
+curl -X DELETE http://localhost:3001/api/tools/search/1.0.0 | jq
+
+# Validate a batch of tools + agents:
+curl -X POST http://localhost:3001/api/compile \
+  -H "Content-Type: application/json" \
+  -d '{"tools": [{"name":"t","version":"1.0.0","implementation":{"source":{"server":"s","tool":"t"}}}]}' | jq
+
+# Full registry snapshot
+curl http://localhost:3001/api/snapshot | jq
 ```
 
 ## Repository structure
@@ -42,6 +98,9 @@ src/
   generate-schema.ts     # Generates schema.json from Zod definitions
   generate-openapi.ts    # Generates openapi.yaml from Zod definitions
 fixtures/                # Language-agnostic behavioral test fixtures (JSON)
+editor/
+  index.html             # Visual tool builder (dark-theme, three-panel UI)
+  server.ts              # Node HTTP server wrapping RegistryService
 docs/design/
   virtual-tools-requirements.md   # Requirements specification (§ references)
 schema.json              # (generated) JSON Schema — non-normative
