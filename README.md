@@ -29,11 +29,13 @@ src/
   api.ts                 # Source of truth — registry API contract types
   validate.ts            # Semantic validation (registration-time checks)
   registry.ts            # Reference control plane implementation
+  dsl.ts                 # Authoring DSL — convenience constructors + compile
   fixture.ts             # Test fixture format schema (language-agnostic)
   schema.test.ts         # Data model acceptance tests (Appendix B scenarios)
   api.test.ts            # API contract type tests
   validate.test.ts       # Semantic validation tests
   registry.test.ts       # Registry service tests (B.5 scenarios + CRUD)
+  dsl.test.ts            # Authoring DSL tests
   fixture.test.ts        # Fixture validation tests
   generate-schema.ts     # Generates schema.json from Zod definitions
   generate-openapi.ts    # Generates openapi.yaml from Zod definitions
@@ -100,6 +102,18 @@ All three return structured `RegistrationViolation` arrays with `{field, rule, m
 - `forwardLineage()` — given an agent or tool, return resolved dependencies
 - `reverseLineage()` — given a tool, return all agent and tool dependents
 - `getSnapshot()` — export the full `Registry` for data plane consumption
+
+**dsl.ts** — authoring convenience constructors for LLMs and WYSIWYG editors:
+- `sourceTool(name, version, opts)` — 1:1 backend tool with projection,
+  defaults, field mapping, output transform
+- `scatterGatherTool(name, version, opts)` — parallel fan-out with aggregate
+  shorthand strings (`"flatten"`, `"dedupe:$.url"`, `"limit:20"`)
+- `pipelineTool(name, version, opts)` — sequential/DAG steps with input bindings
+- `agentDef(card, opts)` — agent wrapping A2A AgentCard with dependency tuples
+- `compile({ tools, agents })` — validate all tools and agents, return
+  `Registry` or violations
+- Autocomplete-friendly types: `AggregateShorthand` (template literal),
+  `TargetShorthand`, `FieldShorthand`, `DependencyShorthand` ([tuple] form)
 
 **fixtures/** — language-agnostic behavioral tests:
 - `b1-output-transform.json` — ArrayMap normalization (arxiv papers → unified schema)
