@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Virtual Tools</title>
+<style>
+:root {
+  --bg: #0f1419;
+  --bg-panel: #1a1f2e;
+  --bg-card: #232a3b;
+  --border: #2d3548;
+  --text: #e0e6ed;
+  --text-dim: #8892a4;
+  --accent: #4fa6e5;
+  --green: #4ec9a0;
+  --purple: #b48ead;
+  --radius: 8px;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  font-family: -apple-system, 'Segoe UI', system-ui, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.container { max-width: 640px; padding: 40px 20px; text-align: center; }
+h1 { font-size: 24px; font-weight: 600; margin-bottom: 8px; }
+p.subtitle { color: var(--text-dim); font-size: 14px; margin-bottom: 36px; line-height: 1.5; }
+.cards { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+a.card {
+  display: block;
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 28px 20px;
+  text-decoration: none;
+  color: var(--text);
+  transition: border-color 0.15s, transform 0.1s;
+}
+a.card:hover { border-color: var(--accent); transform: translateY(-2px); }
+.card .icon { font-size: 32px; margin-bottom: 12px; }
+.card h2 { font-size: 16px; font-weight: 600; margin-bottom: 6px; }
+.card p { font-size: 12px; color: var(--text-dim); line-height: 1.4; }
+.footer {
+  margin-top: 40px;
+  font-size: 12px;
+  color: var(--text-dim);
+}
+.footer a { color: var(--accent); text-decoration: none; }
+.footer a:hover { text-decoration: underline; }
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>Virtual Tools</h1>
+  <p class="subtitle">
+    Config-driven abstraction layer between MCP tool authors and agent authors.
+    Customize tool interfaces, compose multi-tool workflows, and govern
+    versioned registries — all without writing code.
+  </p>
+  <div class="cards">
+    <a class="card" href="/editor">
+      <div class="icon">&#9998;</div>
+      <h2>Tool Editor</h2>
+      <p>Create and edit virtual tools and agents. Source mappings, scatter-gather compositions, pipelines, with live validation.</p>
+    </a>
+    <a class="card" href="/registry">
+      <div class="icon">&#9776;</div>
+      <h2>Registry Browser</h2>
+      <p>Browse tools, agents, servers, and schemas. View lineage, dependency graphs, and lifecycle status.</p>
+    </a>
+  </div>
+  <div class="footer">
+    <a href="https://github.com/jakemannix/virtual-tools-spec">GitHub</a> &middot;
+    API at <code>/api/*</code>
+  </div>
+</div>
+</body>
+</html>
