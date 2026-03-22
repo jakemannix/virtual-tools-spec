@@ -546,11 +546,10 @@ define the contracts it operates against.
    agentgateway), what does a generic plugin mechanism look like? This affects
    whether virtual tools live as a plugin or a standalone service.
 
-4. **Progress notification adoption**: MCP's `notifications/progress` is the
-   mechanism for composition progress (§4.4.4). Open question: should the
-   `CompositionProgressEvent` structured data be carried in the notification's
-   standard fields, or in a custom extension? Current design uses an optional
-   `data` field alongside the standard `progress`/`total`/`message` fields.
+4. ~~**Streaming protocol**~~: Resolved. MCP tool results are atomic;
+   composition progress uses `notifications/progress` with an optional
+   structured `CompositionProgressEvent` in the `data` field alongside
+   the standard `progress`/`total`/`message` fields. See §4.4.4.
 
 ---
 
