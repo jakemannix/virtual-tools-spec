@@ -17,6 +17,8 @@ import {
   CompositionSpec,
   AggregationOp,
   AgentDefinition,
+  CompositionProgressEvent,
+  CompositionProgressNotification,
 } from "./schema.js";
 
 /** Minimal valid A2A AgentCard for testing. */
@@ -440,5 +442,90 @@ describe("Nested compositions", () => {
       },
     };
     expect(ToolDefinition.safeParse(tool).success).toBe(true);
+  });
+});
+
+// ============================================================================
+// Composition Progress (§4.4.4)
+// ============================================================================
+
+describe("CompositionProgressEvent", () => {
+  it("validates a step_completed event", () => {
+    const event = { kind: "step_completed", stepId: "search", tool: "arxiv_search" };
+    expect(CompositionProgressEvent.safeParse(event).success).toBe(true);
+  });
+
+  it("validates a target_completed event", () => {
+    const event = { kind: "target_completed", targetIndex: 2, tool: "github_search" };
+    expect(CompositionProgressEvent.safeParse(event).success).toBe(true);
+  });
+
+  it("validates a target_failed event", () => {
+    const event = {
+      kind: "target_failed",
+      targetIndex: 1,
+      tool: "github_search",
+      error: "HTTP 403 Forbidden",
+      optional: true,
+    };
+    expect(CompositionProgressEvent.safeParse(event).success).toBe(true);
+  });
+
+  it("validates a completed event", () => {
+    const event = { kind: "completed", durationMs: 1234 };
+    expect(CompositionProgressEvent.safeParse(event).success).toBe(true);
+  });
+
+  it("rejects unknown event kind", () => {
+    const event = { kind: "exploded", stepId: "s1" };
+    expect(CompositionProgressEvent.safeParse(event).success).toBe(false);
+  });
+
+  it("rejects extra fields (strict mode)", () => {
+    const event = { kind: "step_completed", stepId: "s1", extraField: true };
+    expect(CompositionProgressEvent.safeParse(event).success).toBe(false);
+  });
+});
+
+describe("CompositionProgressNotification", () => {
+  it("validates a full scatter-gather progress notification", () => {
+    const notification = {
+      progressToken: "abc-123",
+      progress: 2,
+      total: 4,
+      message: "arXiv: done (3 results). HuggingFace: done (5 results).",
+      data: { kind: "target_completed", targetIndex: 1, tool: "huggingface_search" },
+    };
+    expect(CompositionProgressNotification.safeParse(notification).success).toBe(true);
+  });
+
+  it("validates a minimal notification (no data, no total)", () => {
+    const notification = {
+      progressToken: 42,
+      progress: 1,
+    };
+    expect(CompositionProgressNotification.safeParse(notification).success).toBe(true);
+  });
+
+  it("validates a pipeline step completion notification", () => {
+    const notification = {
+      progressToken: "tok",
+      progress: 1,
+      total: 3,
+      message: "Step 'search' completed",
+      data: { kind: "step_completed", stepId: "search" },
+    };
+    expect(CompositionProgressNotification.safeParse(notification).success).toBe(true);
+  });
+
+  it("validates a final completion notification", () => {
+    const notification = {
+      progressToken: "tok",
+      progress: 3,
+      total: 3,
+      message: "Composition complete (1823ms)",
+      data: { kind: "completed", durationMs: 1823 },
+    };
+    expect(CompositionProgressNotification.safeParse(notification).success).toBe(true);
   });
 });

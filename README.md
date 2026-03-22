@@ -61,7 +61,10 @@ requirements sections via `requirementsRef`.
 - `SourceTool` — projection, defaults, field mapping (§4.2)
 - `OutputTransform` / `FieldExtraction` — simplified 3-form model (§4.3)
 - `CompositionSpec` — pipeline and scatter-gather (§4.4)
-- `AgentDefinition` — versioned tool dependencies + environment tags (§4.1.2)
+- `CompositionProgressEvent` / `CompositionProgressNotification` — progress
+  feedback during composition execution via MCP `notifications/progress` (§4.4.4)
+- `AgentDefinition` — wraps A2A `AgentCard` + versioned tool dependencies +
+  environment tags (§4.1.2)
 - `SchemaDefinition`, `ServerDefinition` — registry metadata (§4.1.3-4)
 - `Registry` — the snapshot consumed by the data plane
 
@@ -104,8 +107,6 @@ conformance.
 - **Reference data plane implementation** — a slow, correct TypeScript
   implementation of `resolveToolsList` and `resolveToolCall` that passes
   the fixtures
-- **Data plane streaming contract** — how composition progress maps to MCP's
-  streaming response format (§4.4.4)
 - **Agent identity / tool filtering fixtures** — types exist (§4.5) but no
   fixtures exercise them yet
 

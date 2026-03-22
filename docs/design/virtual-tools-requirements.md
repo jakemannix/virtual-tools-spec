@@ -327,15 +327,47 @@ The spec SHOULD be structured so that a future implementation could plug in a
 workflow engine (e.g., Temporal, BPMN/Camunda) for stateful patterns without changing the
 tool definition format.
 
-#### 4.4.4 Streaming
+#### 4.4.4 Progress During Execution
 
-Compositions SHOULD stream progress to the client as MCP content chunks during
-execution. For example, a scatter-gather over 4 search backends should emit
-progress text as each backend returns ("Searching arXiv... done. Searching
-GitHub..."), with the final structured result delivered at completion.
+MCP tool results are **atomic**: `content` and `structuredContent` arrive
+together in a single `CallToolResult` JSON-RPC response. There is no mechanism
+to stream content parts or partial structured data incrementally.
+
+Progress during composition execution is communicated via MCP's
+**`notifications/progress`** mechanism. The client includes a `progressToken`
+in the `tools/call` request's `_meta`; the data plane emits out-of-band
+progress notifications before the final result.
+
+**Protocol contract:**
+
+1. Client sends `tools/call` with `_meta: { progressToken: <token> }`.
+2. Data plane emits `notifications/progress` as each composition step or
+   scatter-gather target completes or fails. Each notification carries:
+   - `progressToken` — echoes the client's token
+   - `progress` — steps/targets completed so far (integer)
+   - `total` — total steps/targets expected (optional, integer)
+   - `message` — human-readable summary (e.g., "arXiv: done (3 results)")
+   - `data` — structured `CompositionProgressEvent` (optional; see below)
+3. Data plane returns the final atomic `CallToolResult` with both `content`
+   (serialized text, for backward compatibility) and `structuredContent`
+   (typed result conforming to `outputSchema`).
+
+If the client does not provide a `progressToken`, the data plane MUST NOT
+emit progress notifications. The result is still returned correctly; the
+client simply gets no intermediate feedback.
+
+**CompositionProgressEvent kinds:**
+
+| Kind | When emitted | Fields |
+|------|-------------|--------|
+| `step_completed` | Pipeline step returns successfully | `stepId`, `tool?` |
+| `target_completed` | Scatter-gather target returns | `targetIndex`, `tool?` |
+| `target_failed` | Scatter-gather target errors | `targetIndex`, `tool?`, `error`, `optional` |
+| `completed` | Composition finished, result about to be sent | `durationMs?` |
 
 This is important for UX: a 30-second silent block while a composition runs
-is unacceptable.
+is unacceptable. Progress notifications give agents and end-users real-time
+feedback without requiring changes to MCP's tool result model.
 
 ---
 
@@ -414,10 +446,12 @@ These are not v1 requirements but the annotation extension point must exist.
 - A performance test suite MUST be part of the deliverable, measuring gateway
   overhead per-operation.
 
-### 5.2 Streaming
+### 5.2 Progress Feedback
 
-Composition execution MUST support streaming partial results to the client.
-Silent multi-second waits are a UX failure.
+Composition execution MUST emit `notifications/progress` events when the
+client provides a `progressToken`. Silent multi-second waits are a UX failure.
+Note: MCP tool results are atomic — this requirement is about progress
+notifications, not streaming content. See §4.4.4.
 
 ### 5.3 Scale
 
@@ -512,9 +546,11 @@ define the contracts it operates against.
    agentgateway), what does a generic plugin mechanism look like? This affects
    whether virtual tools live as a plugin or a standalone service.
 
-4. **Streaming protocol**: How does composition progress map to MCP's streaming
-   response format? Needs protocol-level design (likely SSE content chunks with
-   progress text followed by final structured result).
+4. **Progress notification adoption**: MCP's `notifications/progress` is the
+   mechanism for composition progress (§4.4.4). Open question: should the
+   `CompositionProgressEvent` structured data be carried in the notification's
+   standard fields, or in a custom extension? Current design uses an optional
+   `data` field alongside the standard `progress`/`total`/`message` fields.
 
 ---
 

@@ -320,6 +320,99 @@ export const CompositionSpec: z.ZodType<CompositionSpec> = z.union([
 ]);
 
 // ============================================================================
+// Composition Progress (§4.4.4)
+// ============================================================================
+
+/**
+ * Progress event emitted during composition execution.
+ *
+ * §4.4.4: MCP tool results are atomic — `content` and `structuredContent`
+ * arrive together in a single `CallToolResult`. Progress during execution
+ * is communicated via MCP's `notifications/progress` mechanism, which
+ * carries a numeric progress value, an optional total, and a human-readable
+ * message.
+ *
+ * The data plane SHOULD emit one progress notification per meaningful
+ * composition event (step completion, target return, target failure).
+ * These types define the structure of the `message` field and the
+ * optional structured `data` attached to each notification.
+ */
+export const CompositionProgressEvent = z.discriminatedUnion("kind", [
+  /**
+   * A pipeline step completed successfully.
+   */
+  z.object({
+    kind: z.literal("step_completed"),
+    stepId: z.string(),
+    /** Tool that was called (if the step is a tool reference, not a nested composition). */
+    tool: z.string().optional(),
+  }).strict(),
+
+  /**
+   * A scatter-gather target returned successfully.
+   */
+  z.object({
+    kind: z.literal("target_completed"),
+    /** Index of the target in the scatter-gather targets array. */
+    targetIndex: z.number().int().nonnegative(),
+    tool: z.string().optional(),
+  }).strict(),
+
+  /**
+   * A scatter-gather target failed. If the target was optional,
+   * execution continues; the error is collected into the result's
+   * `errors` array.
+   */
+  z.object({
+    kind: z.literal("target_failed"),
+    targetIndex: z.number().int().nonnegative(),
+    tool: z.string().optional(),
+    error: z.string(),
+    optional: z.boolean(),
+  }).strict(),
+
+  /**
+   * The composition has finished. This is the last progress event
+   * before the atomic CallToolResult is returned.
+   */
+  z.object({
+    kind: z.literal("completed"),
+    /** Total execution time in milliseconds. */
+    durationMs: z.number().nonnegative().optional(),
+  }).strict(),
+]);
+
+export type CompositionProgressEvent = z.infer<typeof CompositionProgressEvent>;
+
+/**
+ * Shape of an MCP `notifications/progress` params object as emitted
+ * by the data plane during composition execution.
+ *
+ * The `progressToken` is provided by the client in the original
+ * `tools/call` request's `_meta.progressToken`. If the client didn't
+ * provide one, the data plane MUST NOT emit progress notifications.
+ *
+ * The `message` field carries a human-readable summary (e.g.,
+ * "arXiv search: done (3 results)"). The `data` field carries the
+ * structured CompositionProgressEvent for programmatic consumers.
+ */
+export const CompositionProgressNotification = z.object({
+  progressToken: z.union([z.string(), z.number()]),
+  /** Steps or targets completed so far. */
+  progress: z.number().int().nonnegative(),
+  /** Total steps or targets expected. */
+  total: z.number().int().positive().optional(),
+  /** Human-readable progress message. */
+  message: z.string().optional(),
+  /** Structured event data (not part of MCP spec, but allowed in _meta). */
+  data: CompositionProgressEvent.optional(),
+});
+
+export type CompositionProgressNotification = z.infer<
+  typeof CompositionProgressNotification
+>;
+
+// ============================================================================
 // Tool Definition (§3 "Virtual Tool", §4.1.1)
 // ============================================================================
 
