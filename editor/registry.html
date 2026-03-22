@@ -1,0 +1,630 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Registry Browser</title>
+<style>
+:root {
+  --bg: #0f1419;
+  --bg-panel: #1a1f2e;
+  --bg-card: #232a3b;
+  --bg-input: #181d2a;
+  --border: #2d3548;
+  --border-focus: #4fa6e5;
+  --text: #e0e6ed;
+  --text-dim: #8892a4;
+  --accent: #4fa6e5;
+  --green: #4ec9a0;
+  --red: #e55c6c;
+  --orange: #e5a04f;
+  --yellow: #d4d080;
+  --purple: #b48ead;
+  --radius: 6px;
+  --mono: 'Fira Code', 'SF Mono', 'Cascadia Code', monospace;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  font-family: -apple-system, 'Segoe UI', system-ui, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+}
+
+/* Header */
+header {
+  background: var(--bg-panel);
+  border-bottom: 1px solid var(--border);
+  padding: 10px 20px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+header h1 { font-size: 16px; font-weight: 600; }
+header .spacer { flex: 1; }
+header a, header button {
+  padding: 6px 14px;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  background: var(--bg-card);
+  color: var(--text);
+  cursor: pointer;
+  font-size: 13px;
+  text-decoration: none;
+}
+header a:hover, header button:hover { border-color: var(--accent); }
+
+/* Nav tabs */
+.nav-tabs {
+  display: flex;
+  gap: 0;
+  padding: 0 20px;
+  background: var(--bg-panel);
+  border-bottom: 1px solid var(--border);
+}
+.nav-tab {
+  padding: 10px 18px;
+  border: none;
+  background: transparent;
+  color: var(--text-dim);
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 500;
+  border-bottom: 2px solid transparent;
+  transition: all 0.15s;
+}
+.nav-tab:hover { color: var(--text); }
+.nav-tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+.nav-tab .count {
+  display: inline-block;
+  background: var(--bg-card);
+  padding: 1px 6px;
+  border-radius: 8px;
+  font-size: 11px;
+  margin-left: 6px;
+  color: var(--text-dim);
+}
+.nav-tab.active .count { background: rgba(79,166,229,0.15); color: var(--accent); }
+
+/* Content */
+.content { padding: 20px; max-width: 1200px; margin: 0 auto; }
+
+.section { display: none; }
+.section.active { display: block; }
+
+/* Cards */
+.card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+  gap: 12px;
+}
+.card {
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  transition: border-color 0.15s;
+}
+.card:hover { border-color: var(--accent); }
+.card-header {
+  padding: 12px 16px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border-bottom: 1px solid var(--border);
+}
+.card-header .name { font-weight: 600; font-size: 14px; }
+.card-header .version {
+  font-size: 12px;
+  color: var(--green);
+  font-family: var(--mono);
+}
+.card-header .badge {
+  font-size: 10px;
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+.badge-prod { background: #1a3a2a; color: var(--green); }
+.badge-stage { background: #3a2a1a; color: var(--orange); }
+.badge-source { background: #1a2a3a; color: var(--accent); }
+.badge-scatter { background: #3a2a1a; color: var(--orange); }
+.badge-pipeline { background: #2a1a3a; color: var(--purple); }
+.badge-agent { background: #2a2a1a; color: var(--yellow); }
+
+.card-body { padding: 12px 16px; }
+.card-body .desc {
+  font-size: 12px;
+  color: var(--text-dim);
+  margin-bottom: 8px;
+  line-height: 1.4;
+}
+.card-body .field {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 4px;
+  font-size: 12px;
+}
+.card-body .field .label {
+  color: var(--text-dim);
+  min-width: 80px;
+  text-align: right;
+  flex-shrink: 0;
+}
+.card-body .field .val {
+  font-family: var(--mono);
+  font-size: 11px;
+  word-break: break-all;
+}
+
+/* Dependency pills */
+.dep-list { display: flex; flex-wrap: wrap; gap: 4px; }
+.dep-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  font-size: 11px;
+  font-family: var(--mono);
+  cursor: pointer;
+  transition: border-color 0.15s;
+}
+.dep-pill:hover { border-color: var(--accent); }
+.dep-pill .range { color: var(--green); }
+
+/* Provided tools list */
+.provided-tools {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.provided-tool {
+  padding: 2px 8px;
+  background: var(--bg-card);
+  border-radius: 3px;
+  font-size: 11px;
+  font-family: var(--mono);
+}
+
+/* JSON detail panel */
+.detail-overlay {
+  display: none;
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.6);
+  z-index: 100;
+  justify-content: center;
+  align-items: center;
+}
+.detail-overlay.open { display: flex; }
+.detail-panel {
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  width: 700px;
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+}
+.detail-panel .detail-header {
+  padding: 14px 18px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--border);
+}
+.detail-panel .detail-header h2 { font-size: 15px; }
+.detail-panel .close-btn {
+  background: none;
+  border: none;
+  color: var(--text-dim);
+  cursor: pointer;
+  font-size: 20px;
+  padding: 4px 8px;
+}
+.detail-panel .close-btn:hover { color: var(--text); }
+.detail-panel .detail-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 14px 18px;
+}
+.detail-panel pre {
+  font-family: var(--mono);
+  font-size: 12px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.detail-panel .key { color: var(--accent); }
+.detail-panel .str { color: var(--green); }
+.detail-panel .num { color: var(--yellow); }
+.detail-panel .bool { color: var(--purple); }
+.detail-panel .null { color: var(--red); }
+
+/* Lineage view */
+.lineage-section { padding: 12px 0; }
+.lineage-section h4 {
+  font-size: 12px;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 8px;
+}
+
+/* Empty state */
+.empty { text-align: center; padding: 40px; color: var(--text-dim); }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Registry Browser</h1>
+  <div class="spacer"></div>
+  <a href="/">Tool Editor</a>
+  <button onclick="refresh()">Refresh</button>
+</header>
+
+<div class="nav-tabs">
+  <button class="nav-tab active" onclick="switchTab('tools', this)">Tools <span class="count" id="count-tools">0</span></button>
+  <button class="nav-tab" onclick="switchTab('agents', this)">Agents <span class="count" id="count-agents">0</span></button>
+  <button class="nav-tab" onclick="switchTab('servers', this)">Servers <span class="count" id="count-servers">0</span></button>
+  <button class="nav-tab" onclick="switchTab('schemas', this)">Schemas <span class="count" id="count-schemas">0</span></button>
+</div>
+
+<div class="content">
+  <div class="section active" id="sec-tools"></div>
+  <div class="section" id="sec-agents"></div>
+  <div class="section" id="sec-servers"></div>
+  <div class="section" id="sec-schemas"></div>
+</div>
+
+<div class="detail-overlay" id="detail-overlay" onclick="if(event.target===this)closeDetail()">
+  <div class="detail-panel">
+    <div class="detail-header">
+      <h2 id="detail-title">Detail</h2>
+      <button class="close-btn" onclick="closeDetail()">×</button>
+    </div>
+    <div class="detail-body">
+      <pre id="detail-json"></pre>
+    </div>
+  </div>
+</div>
+
+<script>
+const API = window.location.origin + "/api";
+let registry = { tools: [], agents: [], servers: [], schemas: [] };
+
+// ============================================================================
+// Data loading
+// ============================================================================
+
+async function refresh() {
+  try {
+    const snap = await fetch(API + "/snapshot").then(r => r.json());
+    registry = {
+      tools: snap.tools || [],
+      agents: snap.agents || [],
+      servers: snap.servers || [],
+      schemas: snap.schemas || [],
+    };
+  } catch (e) {
+    registry = { tools: [], agents: [], servers: [], schemas: [] };
+  }
+  renderAll();
+}
+
+// ============================================================================
+// Tab switching
+// ============================================================================
+
+let activeTab = "tools";
+
+function switchTab(tab, el) {
+  activeTab = tab;
+  document.querySelectorAll(".nav-tab").forEach(t => t.classList.remove("active"));
+  el.classList.add("active");
+  document.querySelectorAll(".section").forEach(s => s.classList.remove("active"));
+  document.getElementById("sec-" + tab).classList.add("active");
+}
+
+// ============================================================================
+// Rendering
+// ============================================================================
+
+function renderAll() {
+  document.getElementById("count-tools").textContent = registry.tools.length;
+  document.getElementById("count-agents").textContent = registry.agents.length;
+  document.getElementById("count-servers").textContent = registry.servers.length;
+  document.getElementById("count-schemas").textContent = registry.schemas.length;
+
+  renderTools();
+  renderAgents();
+  renderServers();
+  renderSchemas();
+}
+
+function renderTools() {
+  const el = document.getElementById("sec-tools");
+  if (registry.tools.length === 0) {
+    el.innerHTML = '<div class="empty">No tools registered</div>';
+    return;
+  }
+
+  // Group tools by name
+  const groups = {};
+  for (const t of registry.tools) {
+    (groups[t.name] = groups[t.name] || []).push(t);
+  }
+
+  let html = '<div class="card-grid">';
+  for (const [name, versions] of Object.entries(groups)) {
+    for (const t of versions) {
+      const implType = getImplType(t);
+      const implBadge = implType === "source"
+        ? '<span class="badge badge-source">Source</span>'
+        : implType === "scatterGather"
+        ? '<span class="badge badge-scatter">Scatter-Gather</span>'
+        : '<span class="badge badge-pipeline">Pipeline</span>';
+      const envBadge = t.environment
+        ? `<span class="badge badge-${t.environment}">${esc(t.environment)}</span>`
+        : "";
+
+      let bodyHtml = "";
+      if (t.description) bodyHtml += `<div class="desc">${esc(t.description)}</div>`;
+
+      if (implType === "source" && t.implementation.source) {
+        const s = t.implementation.source;
+        bodyHtml += `<div class="field"><span class="label">Server</span><span class="val">${esc(s.server)}</span></div>`;
+        bodyHtml += `<div class="field"><span class="label">Backend tool</span><span class="val">${esc(s.tool)}</span></div>`;
+        if (s.projection?.length) bodyHtml += `<div class="field"><span class="label">Projection</span><span class="val">${esc(s.projection.join(", "))}</span></div>`;
+        if (s.fieldMapping && Object.keys(s.fieldMapping).length) {
+          const maps = Object.entries(s.fieldMapping).map(([k,v]) => `${k} → ${v}`).join(", ");
+          bodyHtml += `<div class="field"><span class="label">Field map</span><span class="val">${esc(maps)}</span></div>`;
+        }
+        if (s.defaults && Object.keys(s.defaults).length) {
+          bodyHtml += `<div class="field"><span class="label">Defaults</span><span class="val">${esc(Object.keys(s.defaults).join(", "))}</span></div>`;
+        }
+      } else if (implType === "scatterGather" && t.implementation.composition?.scatterGather) {
+        const sg = t.implementation.composition.scatterGather;
+        const tNames = sg.targets.map(tgt => "tool" in tgt ? tgt.tool + (tgt.optional ? " (opt)" : "") : "…").join(", ");
+        bodyHtml += `<div class="field"><span class="label">Targets</span><span class="val">${esc(tNames)}</span></div>`;
+        if (sg.aggregation?.length) {
+          bodyHtml += `<div class="field"><span class="label">Aggregate</span><span class="val">${sg.aggregation.length} ops</span></div>`;
+        }
+      } else if (implType === "pipeline" && t.implementation.composition?.pipeline) {
+        const p = t.implementation.composition.pipeline;
+        const stepNames = p.steps.map(s => s.id).join(" → ");
+        bodyHtml += `<div class="field"><span class="label">Steps</span><span class="val">${esc(stepNames)}</span></div>`;
+      }
+
+      // Lineage link
+      bodyHtml += `<div style="margin-top:8px;"><a href="#" onclick="showLineage('tool','${esc(name)}');return false" style="font-size:11px;color:var(--accent);text-decoration:none;">View lineage →</a></div>`;
+
+      html += `
+        <div class="card" onclick="showDetail('tool', '${esc(name)}', '${esc(t.version)}')">
+          <div class="card-header">
+            <span class="name">${esc(name)}</span>
+            <span class="version">${esc(t.version)}</span>
+            ${envBadge}
+            ${implBadge}
+          </div>
+          <div class="card-body">${bodyHtml}</div>
+        </div>`;
+    }
+  }
+  html += "</div>";
+  el.innerHTML = html;
+}
+
+function renderAgents() {
+  const el = document.getElementById("sec-agents");
+  if (registry.agents.length === 0) {
+    el.innerHTML = '<div class="empty">No agents registered</div>';
+    return;
+  }
+
+  let html = '<div class="card-grid">';
+  for (const a of registry.agents) {
+    const card = a.agentCard || {};
+    const envBadge = a.environment
+      ? `<span class="badge badge-${a.environment}">${esc(a.environment)}</span>`
+      : "";
+
+    let bodyHtml = "";
+    if (card.description) bodyHtml += `<div class="desc">${esc(card.description)}</div>`;
+    if (card.url) bodyHtml += `<div class="field"><span class="label">URL</span><span class="val">${esc(card.url)}</span></div>`;
+    if (card.protocolVersion) bodyHtml += `<div class="field"><span class="label">A2A version</span><span class="val">${esc(card.protocolVersion)}</span></div>`;
+
+    if (a.dependencies?.length) {
+      bodyHtml += `<div class="field"><span class="label">Dependencies</span><div class="dep-list">`;
+      for (const dep of a.dependencies) {
+        bodyHtml += `<span class="dep-pill" onclick="event.stopPropagation();showLineage('tool','${esc(dep.tool)}')">${esc(dep.tool)} <span class="range">${esc(dep.versionRange)}</span></span>`;
+      }
+      bodyHtml += `</div></div>`;
+    }
+
+    bodyHtml += `<div style="margin-top:8px;"><a href="#" onclick="event.stopPropagation();showLineage('agent','${esc(card.name)}');return false" style="font-size:11px;color:var(--accent);text-decoration:none;">View lineage →</a></div>`;
+
+    html += `
+      <div class="card" onclick="showDetail('agent', '${esc(card.name)}')">
+        <div class="card-header">
+          <span class="name">${esc(card.name)}</span>
+          <span class="version">${esc(card.version)}</span>
+          ${envBadge}
+          <span class="badge badge-agent">Agent</span>
+        </div>
+        <div class="card-body">${bodyHtml}</div>
+      </div>`;
+  }
+  html += "</div>";
+  el.innerHTML = html;
+}
+
+function renderServers() {
+  const el = document.getElementById("sec-servers");
+  if (registry.servers.length === 0) {
+    el.innerHTML = '<div class="empty">No servers registered</div>';
+    return;
+  }
+
+  let html = '<div class="card-grid">';
+  for (const s of registry.servers) {
+    let bodyHtml = "";
+    if (s.description) bodyHtml += `<div class="desc">${esc(s.description)}</div>`;
+    if (s.providedTools?.length) {
+      bodyHtml += `<div class="field"><span class="label">Provides</span><div class="provided-tools">`;
+      for (const pt of s.providedTools) {
+        bodyHtml += `<span class="provided-tool">${esc(pt.name)} <span style="color:var(--green)">${esc(pt.version)}</span></span>`;
+      }
+      bodyHtml += `</div></div>`;
+    }
+
+    html += `
+      <div class="card" onclick="showDetail('server', '${esc(s.name)}', '${esc(s.version)}')">
+        <div class="card-header">
+          <span class="name">${esc(s.name)}</span>
+          <span class="version">${esc(s.version)}</span>
+        </div>
+        <div class="card-body">${bodyHtml}</div>
+      </div>`;
+  }
+  html += "</div>";
+  el.innerHTML = html;
+}
+
+function renderSchemas() {
+  const el = document.getElementById("sec-schemas");
+  if (registry.schemas.length === 0) {
+    el.innerHTML = '<div class="empty">No schemas registered</div>';
+    return;
+  }
+
+  let html = '<div class="card-grid">';
+  for (const s of registry.schemas) {
+    let bodyHtml = "";
+    if (s.description) bodyHtml += `<div class="desc">${esc(s.description)}</div>`;
+
+    const props = s.schema?.properties;
+    if (props) {
+      const fieldNames = Object.keys(props).slice(0, 8);
+      bodyHtml += `<div class="field"><span class="label">Fields</span><span class="val">${esc(fieldNames.join(", "))}${Object.keys(props).length > 8 ? " …" : ""}</span></div>`;
+    }
+
+    html += `
+      <div class="card" onclick="showDetail('schema', '${esc(s.name)}', '${esc(s.version)}')">
+        <div class="card-header">
+          <span class="name">${esc(s.name)}</span>
+          <span class="version">${esc(s.version)}</span>
+        </div>
+        <div class="card-body">${bodyHtml}</div>
+      </div>`;
+  }
+  html += "</div>";
+  el.innerHTML = html;
+}
+
+// ============================================================================
+// Detail panel
+// ============================================================================
+
+function showDetail(type, name, version) {
+  let obj;
+  if (type === "tool") obj = registry.tools.find(t => t.name === name && t.version === version);
+  else if (type === "agent") obj = registry.agents.find(a => a.agentCard?.name === name);
+  else if (type === "server") obj = registry.servers.find(s => s.name === name);
+  else if (type === "schema") obj = registry.schemas.find(s => s.name === name);
+  if (!obj) return;
+
+  document.getElementById("detail-title").textContent = `${type}: ${name}${version ? " " + version : ""}`;
+  document.getElementById("detail-json").innerHTML = syntaxHighlight(JSON.stringify(obj, null, 2));
+  document.getElementById("detail-overlay").classList.add("open");
+}
+
+function closeDetail() {
+  document.getElementById("detail-overlay").classList.remove("open");
+}
+
+async function showLineage(type, name) {
+  try {
+    const data = await fetch(`${API}/lineage/forward/${type}/${encodeURIComponent(name)}`).then(r => r.json());
+    let revData = null;
+    if (type === "tool") {
+      revData = await fetch(`${API}/lineage/reverse/${encodeURIComponent(name)}`).then(r => r.json());
+    }
+
+    let html = `<div class="lineage-section"><h4>Forward: ${esc(name)} depends on</h4>`;
+    if (data.dependencies?.length) {
+      html += '<div class="dep-list" style="margin-bottom:12px;">';
+      for (const dep of data.dependencies) {
+        html += `<span class="dep-pill">${esc(dep.tool)} <span class="range">${esc(dep.versionRange)}</span> → [${dep.resolvedVersions?.map(esc).join(", ") || "none"}]</span>`;
+      }
+      html += "</div>";
+    } else {
+      html += `<div style="font-size:12px;color:var(--text-dim);margin-bottom:12px;">No dependencies</div>`;
+    }
+    html += "</div>";
+
+    if (revData) {
+      html += `<div class="lineage-section"><h4>Reverse: who depends on ${esc(name)}</h4>`;
+      if (revData.dependents?.length) {
+        html += '<div class="dep-list">';
+        for (const dep of revData.dependents) {
+          const badge = dep.type === "agent" ? "badge-agent" : "badge-source";
+          html += `<span class="dep-pill"><span class="badge ${badge}" style="margin-right:4px;">${dep.type}</span>${esc(dep.name)} <span class="range">${esc(dep.versionRange)}</span></span>`;
+        }
+        html += "</div>";
+      } else {
+        html += `<div style="font-size:12px;color:var(--text-dim);">No dependents</div>`;
+      }
+      html += "</div>";
+    }
+
+    document.getElementById("detail-title").textContent = `Lineage: ${name}`;
+    document.getElementById("detail-json").innerHTML = html;
+    document.getElementById("detail-overlay").classList.add("open");
+  } catch (e) {
+    console.error(e);
+  }
+}
+
+// ============================================================================
+// Helpers
+// ============================================================================
+
+function getImplType(t) {
+  if (!t.implementation) return "source";
+  if (t.implementation.source) return "source";
+  if (t.implementation.composition?.scatterGather) return "scatterGather";
+  if (t.implementation.composition?.pipeline) return "pipeline";
+  return "source";
+}
+
+function esc(s) {
+  return String(s ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+}
+
+function syntaxHighlight(json) {
+  return json.replace(/("(\\u[\da-fA-F]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g, (match) => {
+    let cls = "num";
+    if (/^"/.test(match)) cls = /:$/.test(match) ? "key" : "str";
+    else if (/true|false/.test(match)) cls = "bool";
+    else if (/null/.test(match)) cls = "null";
+    return `<span class="${cls}">${match}</span>`;
+  });
+}
+
+document.addEventListener("keydown", e => { if (e.key === "Escape") closeDetail(); });
+
+// Initial load
+refresh();
+</script>
+</body>
+</html>

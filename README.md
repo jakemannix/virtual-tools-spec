@@ -35,7 +35,11 @@ npm run editor:demo
 npm run editor
 ```
 
-Open http://localhost:3001. You'll see three panels:
+Open http://localhost:3001 for the tool editor, or http://localhost:3001/registry
+for the read-only registry browser (tools, agents, servers, schemas — with
+clickable lineage views). Links between the two are in each page's header.
+
+**Tool Editor** — http://localhost:3001. You'll see three panels:
 
 - **Left** — Registry browser: lists all tools and agents currently in the
   registry. Click one to edit it.
@@ -100,6 +104,7 @@ src/
 fixtures/                # Language-agnostic behavioral test fixtures (JSON)
 editor/
   index.html             # Visual tool builder (dark-theme, three-panel UI)
+  registry.html          # Registry browser (tools, agents, servers, schemas, lineage)
   server.ts              # Node HTTP server wrapping RegistryService
 docs/design/
   virtual-tools-requirements.md   # Requirements specification (§ references)

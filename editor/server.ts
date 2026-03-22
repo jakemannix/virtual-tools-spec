@@ -78,9 +78,14 @@ const server = createServer(async (req, res) => {
   if (method === "OPTIONS") return end(res, 204);
 
   try {
-    // Static: serve editor HTML
+    // Static: serve editor and registry browser HTML
     if (path === "/" || path === "/index.html") {
       const html = readFileSync(join(__dirname, "index.html"), "utf-8");
+      res.setHeader("Content-Type", "text/html");
+      return end(res, 200, html);
+    }
+    if (path === "/registry" || path === "/registry.html") {
+      const html = readFileSync(join(__dirname, "registry.html"), "utf-8");
       res.setHeader("Content-Type", "text/html");
       return end(res, 200, html);
     }
