@@ -27,9 +27,11 @@ npm run generate      # Regenerate schema.json + openapi.yaml
 src/
   schema.ts              # Source of truth — data model (Zod + TypeScript)
   api.ts                 # Source of truth — registry API contract types
+  validate.ts            # Semantic validation (registration-time checks)
   fixture.ts             # Test fixture format schema (language-agnostic)
   schema.test.ts         # Data model acceptance tests (Appendix B scenarios)
   api.test.ts            # API contract type tests
+  validate.test.ts       # Semantic validation tests
   fixture.test.ts        # Fixture validation tests
   generate-schema.ts     # Generates schema.json from Zod definitions
   generate-openapi.ts    # Generates openapi.yaml from Zod definitions
@@ -69,6 +71,19 @@ requirements sections via `requirementsRef`.
 - Registration validation errors (RegistrationError with violations)
 - Forward/reverse lineage queries (§4.1.5)
 
+**validate.ts** — semantic validation (registration-time checks):
+- `validateTool(tool, registry)` — composition references resolve, step IDs
+  unique, fromStep bindings valid, backend tool exists on server, server
+  version satisfiable, field mapping consistency
+- `validateAgent(agent, registry)` — dependencies resolve to existing tool
+  versions, version ranges satisfiable, prod agents can't depend on
+  stage-only tools, AgentCard structural checks
+- `validateDelete(toolName, version, registry)` — DELETE lifecycle
+  enforcement: prod dependents block, stage dependents warn, checks both
+  agent and tool (composition) dependents, respects SemVer range satisfiability
+
+All three return structured `RegistrationViolation` arrays with `{field, rule, message}`.
+
 **fixtures/** — language-agnostic behavioral tests:
 - `b1-output-transform.json` — ArrayMap normalization (arxiv papers → unified schema)
 - `b2-scatter-gather.json` — 4-way fan-out with optional failure + aggregation
@@ -83,8 +98,6 @@ conformance.
 
 ## What's not here yet
 
-- **Semantic validation library** — registration-time checks beyond schema
-  conformance (e.g., "projected required fields must have defaults")
 - **Reference control plane implementation** — a registry service
   implementing the CRUD, lifecycle enforcement, and lineage query API
   defined in `api.ts` and `openapi.yaml`

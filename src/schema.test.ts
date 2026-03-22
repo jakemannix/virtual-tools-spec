@@ -7,6 +7,7 @@
  */
 
 import { describe, it, expect } from "vitest";
+import type { AgentCard } from "@a2a-js/sdk";
 import {
   Registry,
   ToolDefinition,
@@ -17,6 +18,20 @@ import {
   AggregationOp,
   AgentDefinition,
 } from "./schema.js";
+
+/** Minimal valid A2A AgentCard for testing. */
+function testAgentCard(overrides: Partial<AgentCard> & { name: string; version: string }): AgentCard {
+  return {
+    url: "https://example.com/agent",
+    protocolVersion: "0.2.1",
+    capabilities: {},
+    defaultInputModes: ["text/plain"],
+    defaultOutputModes: ["text/plain"],
+    skills: [],
+    description: `Test agent: ${overrides.name}`,
+    ...overrides,
+  };
+}
 
 // ============================================================================
 // B.1: Schema Normalization (Source Tool + Output Transform)
@@ -299,14 +314,12 @@ describe("B.5: Lineage Query — registry state", () => {
     ],
     agents: [
       {
-        name: "research-agent",
-        version: "1.0.0",
+        agentCard: testAgentCard({ name: "research-agent", version: "1.0.0" }),
         environment: "prod",
         dependencies: [{ tool: "search", versionRange: "1.*" }],
       },
       {
-        name: "test-agent",
-        version: "1.0.0",
+        agentCard: testAgentCard({ name: "test-agent", version: "1.0.0" }),
         environment: "stage",
         dependencies: [{ tool: "search", versionRange: "2.0.0" }],
       },
@@ -319,8 +332,7 @@ describe("B.5: Lineage Query — registry state", () => {
 
   it("validates agent dependency version ranges", () => {
     const agent: AgentDefinition = {
-      name: "my-agent",
-      version: "1.0.0",
+      agentCard: testAgentCard({ name: "my-agent", version: "1.0.0" }),
       environment: "prod",
       dependencies: [
         { tool: "fetch", versionRange: "1.2.*" },

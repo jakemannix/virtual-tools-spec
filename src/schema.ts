@@ -15,6 +15,7 @@
  */
 
 import { z } from "zod";
+import type { AgentCard } from "@a2a-js/sdk";
 
 // ============================================================================
 // Primitives
@@ -386,11 +387,19 @@ export type Dependency = z.infer<typeof Dependency>;
  *
  * §4.1.2: Agents are registered with an A2A AgentCard plus versioned tool
  * dependencies and an environment tag.
+ *
+ * The agentCard field is the full A2A AgentCard — identity, capabilities,
+ * skills, transport, security. We import the type from @a2a-js/sdk rather
+ * than redeclaring it, so the registry stays in sync as A2A evolves.
+ * Runtime validation is a passthrough (z.custom); compile-time typing
+ * comes from the AgentCard interface.
  */
 export const AgentDefinition = z.object({
-  name: z.string(),
-  version: SemVer,
-  description: z.string().optional(),
+  /**
+   * Full A2A AgentCard. The card's `name` and `version` fields are the
+   * agent's canonical identity; the registry does not duplicate them.
+   */
+  agentCard: z.custom<AgentCard>(),
 
   /** §4.1.6: deployment environment. */
   environment: z.string(),

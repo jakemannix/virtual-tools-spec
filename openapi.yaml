@@ -698,13 +698,7 @@ components:
     AgentDefinition:
       type: object
       properties:
-        name:
-          type: string
-        version:
-          type: string
-          pattern: ^\d+\.\d+\.\d+$
-        description:
-          type: string
+        agentCard: {}
         environment:
           type: string
         dependencies:
@@ -725,8 +719,6 @@ components:
           type: object
           additionalProperties: {}
       required:
-        - name
-        - version
         - environment
         - dependencies
       additionalProperties: false
@@ -2375,13 +2367,7 @@ components:
         agent:
           type: object
           properties:
-            name:
-              type: string
-            version:
-              type: string
-              pattern: ^\d+\.\d+\.\d+$
-            description:
-              type: string
+            agentCard: {}
             environment:
               type: string
             dependencies:
@@ -2402,8 +2388,6 @@ components:
               type: object
               additionalProperties: {}
           required:
-            - name
-            - version
             - environment
             - dependencies
           additionalProperties: false
@@ -2416,13 +2400,7 @@ components:
         agent:
           type: object
           properties:
-            name:
-              type: string
-            version:
-              type: string
-              pattern: ^\d+\.\d+\.\d+$
-            description:
-              type: string
+            agentCard: {}
             environment:
               type: string
             dependencies:
@@ -2443,8 +2421,6 @@ components:
               type: object
               additionalProperties: {}
           required:
-            - name
-            - version
             - environment
             - dependencies
           additionalProperties: false
@@ -2467,13 +2443,7 @@ components:
           items:
             type: object
             properties:
-              name:
-                type: string
-              version:
-                type: string
-                pattern: ^\d+\.\d+\.\d+$
-              description:
-                type: string
+              agentCard: {}
               environment:
                 type: string
               dependencies:
@@ -2494,8 +2464,6 @@ components:
                 type: object
                 additionalProperties: {}
             required:
-              - name
-              - version
               - environment
               - dependencies
             additionalProperties: false

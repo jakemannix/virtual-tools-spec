@@ -25,16 +25,34 @@
     ],
     "agents": [
       {
-        "name": "research-agent",
-        "version": "1.0.0",
+        "agentCard": {
+          "name": "research-agent",
+          "version": "1.0.0",
+          "url": "https://example.com/research-agent",
+          "protocolVersion": "0.2.1",
+          "capabilities": {},
+          "defaultInputModes": ["text/plain"],
+          "defaultOutputModes": ["text/plain"],
+          "skills": [],
+          "description": "Research assistant agent"
+        },
         "environment": "prod",
         "dependencies": [
           { "tool": "search", "versionRange": "1.*" }
         ]
       },
       {
-        "name": "test-agent",
-        "version": "1.0.0",
+        "agentCard": {
+          "name": "test-agent",
+          "version": "1.0.0",
+          "url": "https://example.com/test-agent",
+          "protocolVersion": "0.2.1",
+          "capabilities": {},
+          "defaultInputModes": ["text/plain"],
+          "defaultOutputModes": ["text/plain"],
+          "skills": [],
+          "description": "Test agent for staging"
+        },
         "environment": "stage",
         "dependencies": [
           { "tool": "search", "versionRange": "2.0.0" }

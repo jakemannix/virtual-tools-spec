@@ -58,24 +58,36 @@ export const CreateToolResponse = z.object({
 export type CreateToolResponse = z.infer<typeof CreateToolResponse>;
 
 /**
- * Registration error — static validation failed (§4.1.1).
+ * Registration error — static validation failed (§4.1.1, §4.1.2).
  *
- * Reasons include:
+ * Used for both tool and agent registration. Example violations:
+ *
+ * Tool registration:
  *   - Projected required field has no default
  *   - Default value type mismatch
  *   - Mapped field name doesn't exist in backend schema snapshot
  *   - Output transform path is syntactically invalid
+ *   - Composition references a tool that doesn't exist in the registry
+ *   - Pipeline step references a nonexistent earlier step ID
+ *
+ * Agent registration:
+ *   - Dependency references a tool name that doesn't exist
+ *   - Dependency version range matches no registered tool version
+ *   - Prod agent depends on a tool that only exists in stage
+ *   - AgentCard is missing required fields (name, version)
  */
+export const RegistrationViolation = z.object({
+  field: z.string(),
+  rule: z.string(),
+  message: z.string(),
+});
+
+export type RegistrationViolation = z.infer<typeof RegistrationViolation>;
+
 export const RegistrationError = z.object({
   error: z.literal("registration_error"),
   message: z.string(),
-  violations: z.array(
-    z.object({
-      field: z.string(),
-      rule: z.string(),
-      message: z.string(),
-    })
-  ),
+  violations: z.array(RegistrationViolation),
 });
 
 export type RegistrationError = z.infer<typeof RegistrationError>;

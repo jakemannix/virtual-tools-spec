@@ -543,15 +543,7 @@
           "items": {
             "type": "object",
             "properties": {
-              "name": {
-                "type": "string"
-              },
-              "version": {
-                "$ref": "#/definitions/VirtualToolsRegistry/properties/tools/items/properties/version"
-              },
-              "description": {
-                "type": "string"
-              },
+              "agentCard": {},
               "environment": {
                 "type": "string"
               },
@@ -580,8 +572,6 @@
               }
             },
             "required": [
-              "name",
-              "version",
               "environment",
               "dependencies"
             ],
