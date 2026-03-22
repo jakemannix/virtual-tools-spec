@@ -85,6 +85,9 @@ conformance.
 
 - **Semantic validation library** — registration-time checks beyond schema
   conformance (e.g., "projected required fields must have defaults")
+- **Reference control plane implementation** — a registry service
+  implementing the CRUD, lifecycle enforcement, and lineage query API
+  defined in `api.ts` and `openapi.yaml`
 - **Reference data plane implementation** — a slow, correct TypeScript
   implementation of `resolveToolsList` and `resolveToolCall` that passes
   the fixtures
