@@ -385,8 +385,16 @@ function toDependentInfo(dep: {
 function collectToolRefs(
   tool: ToolDefinition
 ): { tool: string; version?: string }[] {
-  if ("source" in tool.implementation) return [];
   const refs: { tool: string; version?: string }[] = [];
+  if ("source" in tool.implementation) {
+    // Source tools depend on their backend tool (if it's also registered).
+    // Skip self-references (pass-through tools like exa_search wrapping exa_search).
+    const backendTool = tool.implementation.source.tool;
+    if (backendTool !== tool.name) {
+      refs.push({ tool: backendTool });
+    }
+    return refs;
+  }
   walkComposition(tool.implementation.composition, refs);
   return refs;
 }

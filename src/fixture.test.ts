@@ -38,8 +38,8 @@ describe("Fixture file validation", () => {
         expect(result.success).toBe(true);
       });
 
-      it("has at least one test case", () => {
-        expect(data.cases.length).toBeGreaterThan(0);
+      it("has cases array (may be empty for registry-only fixtures)", () => {
+        expect(Array.isArray(data.cases)).toBe(true);
       });
 
       it("has a name and description", () => {
@@ -52,7 +52,7 @@ describe("Fixture file validation", () => {
         (data.registry?.tools ?? []).map((t: any) => t.name)
       );
 
-      for (const testCase of data.cases) {
+      for (const testCase of data.cases ?? []) {
         if (testCase.toolCall) {
           it(`case "${testCase.name}" references a tool in the registry`, () => {
             expect(toolNames.has(testCase.toolCall.tool)).toBe(true);

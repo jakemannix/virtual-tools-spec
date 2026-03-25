@@ -142,11 +142,11 @@ export const TestFixture = z.object({
   /** Registry snapshot the data plane loads. */
   registry: Registry,
 
-  /** Canned backend responses. */
-  backends: MockBackends,
+  /** Canned backend responses (optional for registry-only demo fixtures). */
+  backends: MockBackends.optional(),
 
-  /** Test cases to run against this fixture. */
-  cases: z.array(TestCase).min(1),
+  /** Test cases to run against this fixture (optional for registry-only demo fixtures). */
+  cases: z.array(TestCase).optional(),
 });
 
 export type TestFixture = z.infer<typeof TestFixture>;
