@@ -1,0 +1,415 @@
+{
+  "title": "Research Assistant — Multi-Source Search with Knowledge Graph",
+  "description": "A research gateway that composes 5 microservices into powerful virtual tools. Demonstrates output transforms (normalize heterogeneous APIs), scatter-gather (parallel multi-source search), pipelines (search → fetch → merge), and cross-service data flow.",
+  "requirementsRef": "§4.2, §4.3, §4.4",
+  "registry": {
+    "schemaVersion": "1.0",
+    "schemas": [
+      {
+        "name": "NormalizedSearchResult",
+        "version": "1.0.0",
+        "schema": {
+          "type": "object",
+          "properties": {
+            "title": { "type": "string" },
+            "url": { "type": "string" },
+            "snippet": { "type": "string" },
+            "source": { "type": "string", "enum": ["exa", "arxiv", "github", "huggingface"] },
+            "source_type": { "type": "string", "enum": ["web", "paper", "repo", "model"] }
+          },
+          "required": ["title", "url", "source"]
+        }
+      },
+      {
+        "name": "NormalizedSearchResponse",
+        "version": "1.0.0",
+        "schema": {
+          "type": "object",
+          "properties": {
+            "results": {
+              "type": "array",
+              "items": { "$ref": "#/schemas/NormalizedSearchResult" }
+            }
+          }
+        }
+      }
+    ],
+    "servers": [
+      {
+        "name": "search-service",
+        "version": "1.0.0",
+        "description": "External search APIs (Exa, arXiv, GitHub, HuggingFace)",
+        "url": "http://localhost:8001/mcp",
+        "provides": [
+          { "tool": "exa_search", "version": "1.0.0" },
+          { "tool": "arxiv_search", "version": "1.0.0" },
+          { "tool": "github_search", "version": "1.0.0" },
+          { "tool": "huggingface_search", "version": "1.0.0" }
+        ]
+      },
+      {
+        "name": "fetch-service",
+        "version": "1.0.0",
+        "description": "URL content fetching and extraction",
+        "url": "http://localhost:8002/mcp",
+        "provides": [
+          { "tool": "url_fetch", "version": "1.0.0" },
+          { "tool": "extract_urls", "version": "1.0.0" },
+          { "tool": "batch_fetch", "version": "1.0.0" }
+        ]
+      },
+      {
+        "name": "entity-service",
+        "version": "1.0.0",
+        "description": "Knowledge graph entities and relations with vector search",
+        "url": "http://localhost:8003/mcp",
+        "provides": [
+          { "tool": "entity_search", "version": "1.0.0" },
+          { "tool": "create_entity", "version": "1.0.0" },
+          { "tool": "create_relation", "version": "1.0.0" }
+        ]
+      },
+      {
+        "name": "category-service",
+        "version": "1.0.0",
+        "description": "Hierarchical category taxonomy",
+        "url": "http://localhost:8004/mcp",
+        "provides": [
+          { "tool": "search_categories", "version": "1.0.0" },
+          { "tool": "create_category", "version": "1.0.0" }
+        ]
+      },
+      {
+        "name": "tag-service",
+        "version": "1.0.0",
+        "description": "Content tagging and organization",
+        "url": "http://localhost:8005/mcp",
+        "provides": [
+          { "tool": "register_content", "version": "1.0.0" },
+          { "tool": "tag_content", "version": "1.0.0" }
+        ]
+      }
+    ],
+    "tools": [
+      {
+        "name": "normalized_exa",
+        "version": "1.0.0",
+        "description": "Exa web search with normalized output",
+        "environment": "prod",
+        "implementation": {
+          "source": {
+            "server": "search-service",
+            "tool": "exa_search"
+          }
+        },
+        "outputTransform": {
+          "mappings": {
+            "results": {
+              "over": "$.results",
+              "fields": {
+                "title": { "path": "$.title", "default": "" },
+                "url": { "path": "$.url", "default": "" },
+                "snippet": { "path": "$.text", "default": "" },
+                "source": { "value": "exa" },
+                "source_type": { "value": "web" }
+              }
+            }
+          }
+        },
+        "outputSchema": { "$ref": "#/schemas/NormalizedSearchResponse" }
+      },
+      {
+        "name": "normalized_arxiv",
+        "version": "1.0.0",
+        "description": "arXiv paper search with normalized output",
+        "environment": "prod",
+        "implementation": {
+          "source": {
+            "server": "search-service",
+            "tool": "arxiv_search"
+          }
+        },
+        "outputTransform": {
+          "mappings": {
+            "results": {
+              "over": "$.papers",
+              "fields": {
+                "title": { "path": "$.title", "default": "" },
+                "url": { "path": "$.pdf_url", "default": "" },
+                "snippet": { "path": "$.abstract", "default": "" },
+                "source": { "value": "arxiv" },
+                "source_type": { "value": "paper" }
+              }
+            }
+          }
+        },
+        "outputSchema": { "$ref": "#/schemas/NormalizedSearchResponse" }
+      },
+      {
+        "name": "normalized_github",
+        "version": "1.0.0",
+        "description": "GitHub repo search with normalized output",
+        "environment": "prod",
+        "implementation": {
+          "source": {
+            "server": "search-service",
+            "tool": "github_search"
+          }
+        },
+        "outputTransform": {
+          "mappings": {
+            "results": {
+              "over": "$.repos",
+              "fields": {
+                "title": { "path": "$.full_name", "default": "" },
+                "url": { "path": "$.html_url", "default": "" },
+                "snippet": { "path": "$.description", "default": "" },
+                "source": { "value": "github" },
+                "source_type": { "value": "repo" }
+              }
+            }
+          }
+        },
+        "outputSchema": { "$ref": "#/schemas/NormalizedSearchResponse" }
+      },
+      {
+        "name": "normalized_huggingface",
+        "version": "1.0.0",
+        "description": "HuggingFace model search with normalized output",
+        "environment": "prod",
+        "implementation": {
+          "source": {
+            "server": "search-service",
+            "tool": "huggingface_search"
+          }
+        },
+        "outputTransform": {
+          "mappings": {
+            "results": {
+              "over": "$.models",
+              "fields": {
+                "title": { "path": "$.id", "default": "" },
+                "url": { "path": "$.url", "default": "" },
+                "snippet": { "path": "$.description", "default": "" },
+                "source": { "value": "huggingface" },
+                "source_type": { "value": "model" }
+              }
+            }
+          }
+        },
+        "outputSchema": { "$ref": "#/schemas/NormalizedSearchResponse" }
+      },
+      {
+        "name": "multi_source_search",
+        "version": "1.0.0",
+        "description": "Searches Exa, arXiv, GitHub, and HuggingFace in parallel, normalizes results into a common schema, deduplicates by URL",
+        "environment": "prod",
+        "implementation": {
+          "composition": {
+            "scatterGather": {
+              "targets": [
+                { "tool": "normalized_exa", "version": "1.0.0" },
+                { "tool": "normalized_arxiv", "version": "1.0.0" },
+                { "tool": "normalized_github", "version": "1.0.0" },
+                { "tool": "normalized_huggingface", "version": "1.0.0" }
+              ],
+              "aggregation": [
+                { "extract": { "path": "$.results" } },
+                { "flatten": true },
+                { "dedupe": { "field": "$.url" } },
+                { "wrap": { "field": "results" } }
+              ],
+              "timeoutMs": 30000
+            }
+          }
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "query": { "type": "string", "description": "Search query" },
+            "num_results": { "type": "integer", "description": "Max results per source", "default": 5 }
+          },
+          "required": ["query"]
+        },
+        "outputSchema": { "$ref": "#/schemas/NormalizedSearchResponse" }
+      },
+      {
+        "name": "fetch_and_extract",
+        "version": "1.0.0",
+        "description": "Fetches a URL and extracts links from the content",
+        "environment": "prod",
+        "implementation": {
+          "composition": {
+            "pipeline": {
+              "steps": [
+                {
+                  "id": "fetch",
+                  "operation": { "tool": "url_fetch", "version": "1.0.0" }
+                },
+                {
+                  "id": "extract",
+                  "operation": { "tool": "extract_urls", "version": "1.0.0" },
+                  "input": {
+                    "construct": {
+                      "fields": {
+                        "text": { "fromStep": { "stepId": "fetch", "path": "$.content" } }
+                      }
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "url": { "type": "string", "description": "URL to fetch" }
+          },
+          "required": ["url"]
+        }
+      },
+      {
+        "name": "research_and_fetch",
+        "version": "1.0.0",
+        "description": "Complete research workflow: searches knowledge graph + 4 external sources in parallel, then fetches page content from top results. The primary research tool.",
+        "environment": "prod",
+        "implementation": {
+          "composition": {
+            "pipeline": {
+              "steps": [
+                {
+                  "id": "context",
+                  "operation": {
+                    "inline": {
+                      "scatterGather": {
+                        "targets": [
+                          { "tool": "entity_search", "version": "1.0.0" },
+                          { "tool": "search_categories", "version": "1.0.0" },
+                          { "tool": "multi_source_search", "version": "1.0.0" }
+                        ],
+                        "aggregation": [
+                          { "merge": true }
+                        ],
+                        "timeoutMs": 30000
+                      }
+                    }
+                  },
+                  "input": { "fromInput": { "path": "$" } }
+                },
+                {
+                  "id": "fetch",
+                  "operation": { "tool": "batch_fetch", "version": "1.0.0" },
+                  "input": {
+                    "construct": {
+                      "fields": {
+                        "urls": { "fromStep": { "stepId": "context", "path": "$.results[*].url" } },
+                        "max_length_per_url": { "constant": 3000 }
+                      }
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "query": { "type": "string", "description": "Research topic" },
+            "num_results": { "type": "integer", "description": "Max results per source", "default": 5 },
+            "limit": { "type": "integer", "description": "Max entities/categories", "default": 10 }
+          },
+          "required": ["query"]
+        }
+      },
+      {
+        "name": "store_research_finding",
+        "version": "1.0.0",
+        "description": "Cross-service pipeline: creates a knowledge graph entity, registers content for tagging, then tags it — linking data across entity-service and tag-service boundaries",
+        "environment": "prod",
+        "implementation": {
+          "composition": {
+            "pipeline": {
+              "steps": [
+                {
+                  "id": "create_entity",
+                  "operation": { "tool": "create_entity", "version": "1.0.0" },
+                  "input": {
+                    "construct": {
+                      "fields": {
+                        "name": { "fromInput": { "path": "$.title" } },
+                        "entity_type": { "fromInput": { "path": "$.entity_type" } },
+                        "description": { "fromInput": { "path": "$.description" } }
+                      }
+                    }
+                  }
+                },
+                {
+                  "id": "register",
+                  "operation": { "tool": "register_content", "version": "1.0.0" },
+                  "input": {
+                    "construct": {
+                      "fields": {
+                        "url": { "fromInput": { "path": "$.url" } },
+                        "summary": { "fromInput": { "path": "$.description" } },
+                        "metadata": {
+                          "construct": {
+                            "fields": {
+                              "entity_id": { "fromStep": { "stepId": "create_entity", "path": "$.entity.id" } }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                },
+                {
+                  "id": "tag",
+                  "operation": { "tool": "tag_content", "version": "1.0.0" },
+                  "input": {
+                    "construct": {
+                      "fields": {
+                        "content_id": { "fromStep": { "stepId": "register", "path": "$.content.id" } },
+                        "category_id": { "fromInput": { "path": "$.category_id" } }
+                      }
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "title": { "type": "string" },
+            "entity_type": { "type": "string", "enum": ["paper", "concept", "tool", "person", "organization", "dataset", "model"] },
+            "description": { "type": "string" },
+            "url": { "type": "string" },
+            "category_id": { "type": "string" }
+          },
+          "required": ["title", "entity_type", "description", "url", "category_id"]
+        }
+      }
+    ],
+    "agents": [
+      {
+        "agentCard": {
+          "name": "research-agent",
+          "version": "1.0.0",
+          "url": "http://localhost:9001",
+          "description": "Research assistant that orchestrates multi-source search, content fetching, and knowledge graph management via virtual tools"
+        },
+        "environment": "prod",
+        "dependencies": [
+          { "tool": "research_and_fetch", "versionRange": "1.*" },
+          { "tool": "multi_source_search", "versionRange": "1.*" },
+          { "tool": "store_research_finding", "versionRange": "1.*" },
+          { "tool": "create_entity", "versionRange": "1.*" },
+          { "tool": "create_category", "versionRange": "1.*" }
+        ]
+      }
+    ]
+  }
+}
