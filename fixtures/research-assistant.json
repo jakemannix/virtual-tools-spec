@@ -1,6 +1,6 @@
 {
   "title": "Research Assistant — Multi-Source Search with Knowledge Graph",
-  "description": "A research gateway that composes 5 microservices into powerful virtual tools. Demonstrates output transforms (normalize heterogeneous APIs), scatter-gather (parallel multi-source search), pipelines (search → fetch → merge), and cross-service data flow.",
+  "description": "A research gateway that composes 5 microservices into powerful virtual tools. Demonstrates output transforms (normalize heterogeneous APIs), scatter-gather (parallel multi-source search), pipelines (search → fetch → merge), and cross-service data flow. Base MCP tools and virtual tools are on equal footing in the registry.",
   "requirementsRef": "§4.2, §4.3, §4.4",
   "registry": {
     "schemaVersion": "1.0",
@@ -91,16 +91,365 @@
       }
     ],
     "tools": [
+
+      {
+        "name": "exa_search",
+        "version": "1.0.0",
+        "description": "Search the web using Exa API. Returns results with title, URL, text snippets, and scores.",
+        "environment": "prod",
+        "implementation": {
+          "source": { "server": "search-service", "tool": "exa_search" }
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "query": { "type": "string", "description": "Search query for web search" },
+            "num_results": { "type": "integer", "description": "Number of results to return (1-20)", "default": 10 },
+            "use_autoprompt": { "type": "boolean", "description": "Use Exa's autoprompt feature", "default": true }
+          },
+          "required": ["query"]
+        },
+        "outputSchema": {
+          "type": "object",
+          "properties": {
+            "query": { "type": "string" },
+            "results": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "title": { "type": "string" },
+                  "url": { "type": "string" },
+                  "text": { "type": ["string", "null"] },
+                  "highlight": { "type": ["string", "null"] },
+                  "score": { "type": "number" },
+                  "published_date": { "type": ["string", "null"] }
+                }
+              }
+            },
+            "error": { "type": ["string", "null"] }
+          }
+        }
+      },
+
+      {
+        "name": "arxiv_search",
+        "version": "1.0.0",
+        "description": "Search arXiv for academic papers. Returns paper metadata including title, authors, abstract, and PDF URL. No API key required.",
+        "environment": "prod",
+        "implementation": {
+          "source": { "server": "search-service", "tool": "arxiv_search" }
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "query": { "type": "string", "description": "Search query for arXiv papers" },
+            "num_results": { "type": "integer", "description": "Number of papers to return (1-50)", "default": 10 },
+            "sort_by": { "type": "string", "description": "Sort order: relevance, lastUpdatedDate, submittedDate", "default": "relevance" }
+          },
+          "required": ["query"]
+        },
+        "outputSchema": {
+          "type": "object",
+          "properties": {
+            "query": { "type": "string" },
+            "papers": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "arxiv_id": { "type": "string" },
+                  "title": { "type": "string" },
+                  "abstract": { "type": "string" },
+                  "authors": { "type": "array", "items": { "type": "string" } },
+                  "categories": { "type": "array", "items": { "type": "string" } },
+                  "pdf_url": { "type": ["string", "null"] },
+                  "abs_url": { "type": ["string", "null"] },
+                  "published": { "type": ["string", "null"] }
+                }
+              }
+            },
+            "error": { "type": ["string", "null"] }
+          }
+        }
+      },
+
+      {
+        "name": "github_search",
+        "version": "1.0.0",
+        "description": "Search GitHub for repositories or code. GITHUB_TOKEN optional but recommended to avoid rate limits.",
+        "environment": "prod",
+        "implementation": {
+          "source": { "server": "search-service", "tool": "github_search" }
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "query": { "type": "string", "description": "Search query for GitHub repositories" },
+            "num_results": { "type": "integer", "description": "Number of repositories to return (1-30)", "default": 10 },
+            "search_type": { "type": "string", "description": "What to search: repositories, code", "default": "repositories" }
+          },
+          "required": ["query"]
+        },
+        "outputSchema": {
+          "type": "object",
+          "properties": {
+            "query": { "type": "string" },
+            "search_type": { "type": "string" },
+            "total_count": { "type": "integer" },
+            "repos": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "full_name": { "type": "string" },
+                  "html_url": { "type": "string" },
+                  "description": { "type": ["string", "null"] },
+                  "stargazers_count": { "type": "integer" },
+                  "forks_count": { "type": "integer" },
+                  "language": { "type": ["string", "null"] },
+                  "topics": { "type": "array", "items": { "type": "string" } }
+                }
+              }
+            },
+            "error": { "type": ["string", "null"] }
+          }
+        }
+      },
+
+      {
+        "name": "huggingface_search",
+        "version": "1.0.0",
+        "description": "Search HuggingFace for models, datasets, or spaces. HF_TOKEN optional but recommended.",
+        "environment": "prod",
+        "implementation": {
+          "source": { "server": "search-service", "tool": "huggingface_search" }
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "query": { "type": "string", "description": "Search query for HuggingFace" },
+            "num_results": { "type": "integer", "description": "Number of results to return (1-30)", "default": 10 },
+            "search_type": { "type": "string", "description": "What to search: models, datasets, spaces", "default": "models" }
+          },
+          "required": ["query"]
+        },
+        "outputSchema": {
+          "type": "object",
+          "properties": {
+            "query": { "type": "string" },
+            "search_type": { "type": "string" },
+            "models": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "id": { "type": "string" },
+                  "url": { "type": "string" },
+                  "description": { "type": ["string", "null"] },
+                  "downloads": { "type": "integer" },
+                  "pipeline_tag": { "type": ["string", "null"] }
+                }
+              }
+            },
+            "error": { "type": ["string", "null"] }
+          }
+        }
+      },
+
+      {
+        "name": "entity_search",
+        "version": "1.0.0",
+        "description": "Semantic search over knowledge graph entity descriptions using vector similarity",
+        "environment": "prod",
+        "implementation": {
+          "source": { "server": "entity-service", "tool": "entity_search" }
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "query": { "type": "string", "description": "Semantic search query" },
+            "limit": { "type": "integer", "description": "Max results", "default": 10 }
+          },
+          "required": ["query"]
+        }
+      },
+
+      {
+        "name": "create_entity",
+        "version": "1.0.0",
+        "description": "Add an entity to the knowledge graph (paper, concept, tool, person, etc.)",
+        "environment": "prod",
+        "implementation": {
+          "source": { "server": "entity-service", "tool": "create_entity" }
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "name": { "type": "string", "description": "Entity name" },
+            "entity_type": { "type": "string", "description": "Type: paper, concept, tool, person, organization" },
+            "description": { "type": "string", "description": "Detailed description" },
+            "properties": { "type": "object", "description": "Additional properties (url, authors, etc.)" }
+          },
+          "required": ["name", "entity_type", "description"]
+        }
+      },
+
+      {
+        "name": "create_relation",
+        "version": "1.0.0",
+        "description": "Link two entities in the knowledge graph with a predicate",
+        "environment": "prod",
+        "implementation": {
+          "source": { "server": "entity-service", "tool": "create_relation" }
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "subject_id": { "type": "string", "description": "Source entity ID" },
+            "object_id": { "type": "string", "description": "Target entity ID" },
+            "predicate": { "type": "string", "description": "Relationship: extends, cites, implements, related_to, authored_by" }
+          },
+          "required": ["subject_id", "object_id", "predicate"]
+        }
+      },
+
+      {
+        "name": "search_categories",
+        "version": "1.0.0",
+        "description": "Semantic search over category taxonomy",
+        "environment": "prod",
+        "implementation": {
+          "source": { "server": "category-service", "tool": "search_categories" }
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "query": { "type": "string", "description": "Search query" },
+            "limit": { "type": "integer", "description": "Max results", "default": 10 }
+          },
+          "required": ["query"]
+        }
+      },
+
+      {
+        "name": "create_category",
+        "version": "1.0.0",
+        "description": "Add a category to the taxonomy. Build hierarchies by setting parent_id.",
+        "environment": "prod",
+        "implementation": {
+          "source": { "server": "category-service", "tool": "create_category" }
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "name": { "type": "string", "description": "Category name" },
+            "description": { "type": "string", "description": "What belongs in this category" },
+            "parent_id": { "type": ["string", "null"], "description": "Parent category ID (null for root)" }
+          },
+          "required": ["name", "description"]
+        }
+      },
+
+      {
+        "name": "batch_fetch",
+        "version": "1.0.0",
+        "description": "Fetch content from multiple URLs in parallel",
+        "environment": "prod",
+        "implementation": {
+          "source": { "server": "fetch-service", "tool": "batch_fetch" }
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "urls": { "type": "array", "items": { "type": "string" }, "description": "URLs to fetch" },
+            "max_length_per_url": { "type": "integer", "description": "Max content length per URL", "default": 5000 }
+          },
+          "required": ["urls"]
+        }
+      },
+
+      {
+        "name": "url_fetch",
+        "version": "1.0.0",
+        "description": "Fetch a single URL and extract text content and metadata",
+        "environment": "prod",
+        "implementation": {
+          "source": { "server": "fetch-service", "tool": "url_fetch" }
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "url": { "type": "string", "description": "URL to fetch" },
+            "max_length": { "type": "integer", "description": "Max content length", "default": 10000 }
+          },
+          "required": ["url"]
+        }
+      },
+
+      {
+        "name": "extract_urls",
+        "version": "1.0.0",
+        "description": "Extract URLs from text content with optional domain filtering",
+        "environment": "prod",
+        "implementation": {
+          "source": { "server": "fetch-service", "tool": "extract_urls" }
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "text": { "type": "string", "description": "Text to extract URLs from" },
+            "domain_filter": { "type": ["string", "null"], "description": "Only return URLs from this domain" }
+          },
+          "required": ["text"]
+        }
+      },
+
+      {
+        "name": "register_content",
+        "version": "1.0.0",
+        "description": "Register a URL/content for tagging in the tag service",
+        "environment": "prod",
+        "implementation": {
+          "source": { "server": "tag-service", "tool": "register_content" }
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "url": { "type": "string", "description": "Content URL" },
+            "summary": { "type": "string", "description": "Content summary" },
+            "metadata": { "type": "object", "description": "Additional metadata" }
+          },
+          "required": ["url"]
+        }
+      },
+
+      {
+        "name": "tag_content",
+        "version": "1.0.0",
+        "description": "Associate content with a category",
+        "environment": "prod",
+        "implementation": {
+          "source": { "server": "tag-service", "tool": "tag_content" }
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "content_id": { "type": "string", "description": "Content ID (from register_content)" },
+            "category_id": { "type": "string", "description": "Category ID to tag with" }
+          },
+          "required": ["content_id", "category_id"]
+        }
+      },
+
+
       {
         "name": "normalized_exa",
         "version": "1.0.0",
-        "description": "Exa web search with normalized output",
+        "description": "Exa web search with normalized output — maps native Exa response to common NormalizedSearchResponse schema",
         "environment": "prod",
         "implementation": {
-          "source": {
-            "server": "search-service",
-            "tool": "exa_search"
-          }
+          "source": { "server": "search-service", "tool": "exa_search" }
         },
         "outputTransform": {
           "mappings": {
@@ -116,18 +465,24 @@
             }
           }
         },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "query": { "type": "string", "description": "Search query" },
+            "num_results": { "type": "integer", "description": "Number of results (1-20)", "default": 10 }
+          },
+          "required": ["query"]
+        },
         "outputSchema": { "$ref": "#/schemas/NormalizedSearchResponse" }
       },
+
       {
         "name": "normalized_arxiv",
         "version": "1.0.0",
-        "description": "arXiv paper search with normalized output",
+        "description": "arXiv paper search with normalized output — maps native arXiv response to common NormalizedSearchResponse schema",
         "environment": "prod",
         "implementation": {
-          "source": {
-            "server": "search-service",
-            "tool": "arxiv_search"
-          }
+          "source": { "server": "search-service", "tool": "arxiv_search" }
         },
         "outputTransform": {
           "mappings": {
@@ -143,18 +498,24 @@
             }
           }
         },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "query": { "type": "string", "description": "Search query" },
+            "num_results": { "type": "integer", "description": "Number of papers (1-50)", "default": 10 }
+          },
+          "required": ["query"]
+        },
         "outputSchema": { "$ref": "#/schemas/NormalizedSearchResponse" }
       },
+
       {
         "name": "normalized_github",
         "version": "1.0.0",
-        "description": "GitHub repo search with normalized output",
+        "description": "GitHub repo search with normalized output — maps native GitHub response to common NormalizedSearchResponse schema",
         "environment": "prod",
         "implementation": {
-          "source": {
-            "server": "search-service",
-            "tool": "github_search"
-          }
+          "source": { "server": "search-service", "tool": "github_search" }
         },
         "outputTransform": {
           "mappings": {
@@ -170,18 +531,24 @@
             }
           }
         },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "query": { "type": "string", "description": "Search query" },
+            "num_results": { "type": "integer", "description": "Number of repos (1-30)", "default": 10 }
+          },
+          "required": ["query"]
+        },
         "outputSchema": { "$ref": "#/schemas/NormalizedSearchResponse" }
       },
+
       {
         "name": "normalized_huggingface",
         "version": "1.0.0",
-        "description": "HuggingFace model search with normalized output",
+        "description": "HuggingFace model search with normalized output — maps native HF response to common NormalizedSearchResponse schema",
         "environment": "prod",
         "implementation": {
-          "source": {
-            "server": "search-service",
-            "tool": "huggingface_search"
-          }
+          "source": { "server": "search-service", "tool": "huggingface_search" }
         },
         "outputTransform": {
           "mappings": {
@@ -197,12 +564,22 @@
             }
           }
         },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "query": { "type": "string", "description": "Search query" },
+            "num_results": { "type": "integer", "description": "Number of results (1-30)", "default": 10 }
+          },
+          "required": ["query"]
+        },
         "outputSchema": { "$ref": "#/schemas/NormalizedSearchResponse" }
       },
+
+
       {
         "name": "multi_source_search",
         "version": "1.0.0",
-        "description": "Searches Exa, arXiv, GitHub, and HuggingFace in parallel, normalizes results into a common schema, deduplicates by URL",
+        "description": "Searches Exa, arXiv, GitHub, and HuggingFace in parallel via normalized wrappers, deduplicates by URL",
         "environment": "prod",
         "implementation": {
           "composition": {
@@ -233,10 +610,11 @@
         },
         "outputSchema": { "$ref": "#/schemas/NormalizedSearchResponse" }
       },
+
       {
         "name": "fetch_and_extract",
         "version": "1.0.0",
-        "description": "Fetches a URL and extracts links from the content",
+        "description": "Fetches a URL then extracts links from the content — two-step pipeline across fetch-service tools",
         "environment": "prod",
         "implementation": {
           "composition": {
@@ -264,15 +642,16 @@
         "inputSchema": {
           "type": "object",
           "properties": {
-            "url": { "type": "string", "description": "URL to fetch" }
+            "url": { "type": "string", "description": "URL to fetch and extract links from" }
           },
           "required": ["url"]
         }
       },
+
       {
         "name": "research_and_fetch",
         "version": "1.0.0",
-        "description": "Complete research workflow: searches knowledge graph + 4 external sources in parallel, then fetches page content from top results. The primary research tool.",
+        "description": "Complete research workflow: searches knowledge graph + 4 external sources in parallel, then fetches page content from top results",
         "environment": "prod",
         "implementation": {
           "composition": {
@@ -288,9 +667,7 @@
                           { "tool": "search_categories", "version": "1.0.0" },
                           { "tool": "multi_source_search", "version": "1.0.0" }
                         ],
-                        "aggregation": [
-                          { "merge": true }
-                        ],
+                        "aggregation": [{ "merge": true }],
                         "timeoutMs": 30000
                       }
                     }
@@ -323,10 +700,11 @@
           "required": ["query"]
         }
       },
+
       {
         "name": "store_research_finding",
         "version": "1.0.0",
-        "description": "Cross-service pipeline: creates a knowledge graph entity, registers content for tagging, then tags it — linking data across entity-service and tag-service boundaries",
+        "description": "Cross-service pipeline: creates entity → registers content → tags it. Links data across entity-service and tag-service boundaries.",
         "environment": "prod",
         "implementation": {
           "composition": {
