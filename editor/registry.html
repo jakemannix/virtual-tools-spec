@@ -259,6 +259,95 @@ header a:hover, header button:hover { border-color: var(--accent); }
   margin-bottom: 8px;
 }
 
+/* Clickable lineage links */
+.lineage-link {
+  color: var(--accent);
+  cursor: pointer;
+  text-decoration: none;
+  border-bottom: 1px dotted var(--accent);
+  transition: color 0.15s;
+}
+.lineage-link:hover {
+  color: #7cbef0;
+  border-bottom-color: #7cbef0;
+}
+.dep-pill.clickable { cursor: pointer; }
+.dep-pill.clickable:hover { border-color: var(--accent); background: rgba(79,166,229,0.1); }
+
+/* Resolved version indicator */
+.resolved-arrow { color: var(--text-dim); margin: 0 3px; }
+.resolved-version { color: var(--green); }
+
+/* Card highlight animation */
+.card.highlight {
+  border-color: var(--accent) !important;
+  box-shadow: 0 0 12px rgba(79,166,229,0.35);
+  transition: box-shadow 0.3s, border-color 0.3s;
+}
+
+/* Agent URL link */
+.agent-url-link {
+  color: var(--accent);
+  text-decoration: none;
+  font-family: var(--mono);
+  font-size: 11px;
+  word-break: break-all;
+}
+.agent-url-link:hover { text-decoration: underline; }
+
+/* Schema ref links */
+.schema-ref-link {
+  color: var(--accent);
+  cursor: pointer;
+  text-decoration: none;
+  font-family: var(--mono);
+  font-size: 11px;
+  border-bottom: 1px dotted var(--accent);
+  transition: color 0.15s;
+}
+.schema-ref-link:hover {
+  color: #7cbef0;
+  border-bottom-color: #7cbef0;
+}
+.schema-ref-inline {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  background: rgba(79,166,229,0.08);
+  border: 1px solid rgba(79,166,229,0.25);
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+.schema-ref-inline:hover {
+  background: rgba(79,166,229,0.15);
+  border-color: var(--accent);
+}
+.schema-ref-inline .ref-arrow {
+  color: var(--text-dim);
+  font-size: 11px;
+}
+.schema-ref-inline .ref-name {
+  color: var(--accent);
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+/* Clickable $ref in JSON detail views */
+.json-ref-link {
+  color: var(--accent);
+  cursor: pointer;
+  text-decoration: none;
+  border-bottom: 1px dotted var(--accent);
+  transition: color 0.15s;
+}
+.json-ref-link:hover {
+  color: #7cbef0;
+  border-bottom-color: #7cbef0;
+}
+
 /* Empty state */
 .empty { text-align: center; padding: 40px; color: var(--text-dim); }
 </style>
@@ -406,6 +495,21 @@ function renderTools() {
         bodyHtml += `<div class="field"><span class="label">Steps</span><span class="val">${esc(stepNames)}</span></div>`;
       }
 
+      // Show inputSchema $ref if present
+      if (t.inputSchema && t.inputSchema['$ref']) {
+        const refName = extractRefName(t.inputSchema['$ref']);
+        if (refName) {
+          bodyHtml += `<div class="field"><span class="label">Input</span><span class="val"><span class="schema-ref-inline" onclick="event.stopPropagation();navigateToSchema('${esc(refName)}')"><span class="ref-arrow">&rarr;</span><span class="ref-name">${esc(refName)}</span></span></span></div>`;
+        }
+      }
+      // Show outputSchema $ref if present
+      if (t.outputSchema && t.outputSchema['$ref']) {
+        const refName = extractRefName(t.outputSchema['$ref']);
+        if (refName) {
+          bodyHtml += `<div class="field"><span class="label">Output</span><span class="val"><span class="schema-ref-inline" onclick="event.stopPropagation();navigateToSchema('${esc(refName)}')"><span class="ref-arrow">&rarr;</span><span class="ref-name">${esc(refName)}</span></span></span></div>`;
+        }
+      }
+
       // Lineage link
       bodyHtml += `<div style="margin-top:8px;"><a href="#" onclick="showLineage('tool','${esc(name)}');return false" style="font-size:11px;color:var(--accent);text-decoration:none;">View lineage →</a></div>`;
 
@@ -441,13 +545,18 @@ function renderAgents() {
 
     let bodyHtml = "";
     if (card.description) bodyHtml += `<div class="desc">${esc(card.description)}</div>`;
-    if (card.url) bodyHtml += `<div class="field"><span class="label">URL</span><span class="val">${esc(card.url)}</span></div>`;
+    if (card.url) bodyHtml += `<div class="field"><span class="label">URL</span><span class="val"><a class="agent-url-link" href="${esc(card.url)}" target="_blank" rel="noopener" onclick="event.stopPropagation()">${esc(card.url)}</a></span></div>`;
     if (card.protocolVersion) bodyHtml += `<div class="field"><span class="label">A2A version</span><span class="val">${esc(card.protocolVersion)}</span></div>`;
 
     if (a.dependencies?.length) {
       bodyHtml += `<div class="field"><span class="label">Dependencies</span><div class="dep-list">`;
       for (const dep of a.dependencies) {
-        bodyHtml += `<span class="dep-pill" onclick="event.stopPropagation();showLineage('tool','${esc(dep.tool)}')">${esc(dep.tool)} <span class="range">${esc(dep.versionRange)}</span></span>`;
+        const resolvedVersion = resolveVersionRange(dep.tool, dep.versionRange);
+        let resolvedHtml = '';
+        if (resolvedVersion && resolvedVersion !== dep.versionRange) {
+          resolvedHtml = `<span class="resolved-arrow">→</span> <span class="resolved-version">${esc(resolvedVersion)}</span>`;
+        }
+        bodyHtml += `<span class="dep-pill clickable" onclick="event.stopPropagation();navigateToItem('tool','${esc(dep.tool)}','${resolvedVersion ? esc(resolvedVersion) : ''}')">${esc(dep.tool)} <span class="range">${esc(dep.versionRange)}</span>${resolvedHtml}</span>`;
       }
       bodyHtml += `</div></div>`;
     }
@@ -519,6 +628,16 @@ function renderSchemas() {
       bodyHtml += `<div class="field"><span class="label">Fields</span><span class="val">${esc(fieldNames.join(", "))}${Object.keys(props).length > 8 ? " …" : ""}</span></div>`;
     }
 
+    // Show any $ref references found in this schema
+    const refs = findSchemaRefs(s.schema);
+    if (refs.length) {
+      bodyHtml += `<div class="field"><span class="label">Refs</span><span class="val">`;
+      bodyHtml += refs.map(refName =>
+        `<span class="schema-ref-inline" onclick="event.stopPropagation();navigateToSchema('${esc(refName)}')"><span class="ref-arrow">&rarr;</span><span class="ref-name">${esc(refName)}</span></span>`
+      ).join(' ');
+      bodyHtml += `</span></div>`;
+    }
+
     html += `
       <div class="card" onclick="showDetail('schema', '${esc(s.name)}', '${esc(s.version)}')">
         <div class="card-header">
@@ -553,6 +672,45 @@ function closeDetail() {
   document.getElementById("detail-overlay").classList.remove("open");
 }
 
+function navigateToItem(type, name, version) {
+  // Map type to tab name
+  const tabMap = { tool: "tools", agent: "agents", server: "servers", schema: "schemas" };
+  const tabName = tabMap[type] || "tools";
+
+  // Switch to the correct tab
+  const tabBtn = document.querySelector(`.nav-tab[onclick*="'${tabName}'"]`);
+  if (tabBtn) switchTab(tabName, tabBtn);
+
+  // Find the matching card. We look for a card whose header contains the name
+  // and optionally the version.
+  requestAnimationFrame(() => {
+    const section = document.getElementById("sec-" + tabName);
+    const cards = section.querySelectorAll(".card");
+    let target = null;
+    for (const card of cards) {
+      const cardName = card.querySelector(".card-header .name")?.textContent;
+      const cardVersion = card.querySelector(".card-header .version")?.textContent;
+      if (cardName === name) {
+        if (!version || cardVersion === version) {
+          target = card;
+          break;
+        }
+        // If version doesn't match exactly, still take it as a fallback
+        if (!target) target = card;
+      }
+    }
+    if (target) {
+      // Remove any previous highlights
+      document.querySelectorAll(".card.highlight").forEach(c => c.classList.remove("highlight"));
+      // Scroll into view and highlight
+      target.scrollIntoView({ behavior: "smooth", block: "center" });
+      target.classList.add("highlight");
+      // Remove highlight after a few seconds
+      setTimeout(() => target.classList.remove("highlight"), 3000);
+    }
+  });
+}
+
 async function showLineage(type, name) {
   try {
     const data = await fetch(`${API}/lineage/forward/${type}/${encodeURIComponent(name)}`).then(r => r.json());
@@ -565,7 +723,17 @@ async function showLineage(type, name) {
     if (data.dependencies?.length) {
       html += '<div class="dep-list" style="margin-bottom:12px;">';
       for (const dep of data.dependencies) {
-        html += `<span class="dep-pill">${esc(dep.tool)} <span class="range">${esc(dep.versionRange)}</span> → [${dep.resolvedVersions?.map(esc).join(", ") || "none"}]</span>`;
+        const resolved = dep.resolvedVersions?.length ? dep.resolvedVersions : [];
+        let resolvedHtml = '';
+        if (resolved.length) {
+          const resolvedLinks = resolved.map(v =>
+            `<a class="lineage-link resolved-version" onclick="event.stopPropagation();closeDetail();navigateToItem('tool','${esc(dep.tool)}','${esc(v)}')">${esc(v)}</a>`
+          ).join(', ');
+          resolvedHtml = `<span class="resolved-arrow">→</span> ${resolvedLinks}`;
+        } else {
+          resolvedHtml = `<span class="resolved-arrow">→</span> <span style="color:var(--text-dim)">none</span>`;
+        }
+        html += `<span class="dep-pill clickable" onclick="event.stopPropagation();closeDetail();navigateToItem('tool','${esc(dep.tool)}','${resolved[0] ? esc(resolved[0]) : ''}')">${esc(dep.tool)} <span class="range">${esc(dep.versionRange)}</span> ${resolvedHtml}</span>`;
       }
       html += "</div>";
     } else {
@@ -579,7 +747,8 @@ async function showLineage(type, name) {
         html += '<div class="dep-list">';
         for (const dep of revData.dependents) {
           const badge = dep.type === "agent" ? "badge-agent" : "badge-source";
-          html += `<span class="dep-pill"><span class="badge ${badge}" style="margin-right:4px;">${dep.type}</span>${esc(dep.name)} <span class="range">${esc(dep.versionRange)}</span></span>`;
+          const navType = dep.type === "agent" ? "agent" : "tool";
+          html += `<span class="dep-pill clickable" onclick="event.stopPropagation();closeDetail();navigateToItem('${navType}','${esc(dep.name)}')"><span class="badge ${badge}" style="margin-right:4px;">${dep.type}</span><a class="lineage-link" onclick="event.stopPropagation()">${esc(dep.name)}</a> <span class="range">${esc(dep.versionRange)}</span></span>`;
         }
         html += "</div>";
       } else {
@@ -600,6 +769,70 @@ async function showLineage(type, name) {
 // Helpers
 // ============================================================================
 
+// Resolve a version range like "1.*" to the best matching registered version.
+// Returns the matched version string, or null if no match found.
+function resolveVersionRange(toolName, versionRange) {
+  const candidates = registry.tools.filter(t => t.name === toolName);
+  if (!candidates.length) return null;
+
+  // If the range is an exact version that exists, return it
+  const exact = candidates.find(t => t.version === versionRange);
+  if (exact) return exact.version;
+
+  // Handle wildcard patterns like "1.*", "1.2.*"
+  if (versionRange.includes('*')) {
+    const prefix = versionRange.replace(/\.\*$/, '');
+    const matches = candidates.filter(t => {
+      if (prefix === '*') return true;
+      return t.version === prefix || t.version.startsWith(prefix + '.');
+    });
+    if (matches.length) {
+      // Sort by version descending to return highest match
+      matches.sort((a, b) => {
+        const aParts = a.version.split('.').map(Number);
+        const bParts = b.version.split('.').map(Number);
+        for (let i = 0; i < Math.max(aParts.length, bParts.length); i++) {
+          const diff = (bParts[i] || 0) - (aParts[i] || 0);
+          if (diff !== 0) return diff;
+        }
+        return 0;
+      });
+      return matches[0].version;
+    }
+  }
+
+  // Handle >= ranges like ">=1.0.0"
+  if (versionRange.startsWith('>=')) {
+    const minVer = versionRange.slice(2).trim();
+    const minParts = minVer.split('.').map(Number);
+    const matches = candidates.filter(t => {
+      const parts = t.version.split('.').map(Number);
+      for (let i = 0; i < Math.max(parts.length, minParts.length); i++) {
+        if ((parts[i] || 0) > (minParts[i] || 0)) return true;
+        if ((parts[i] || 0) < (minParts[i] || 0)) return false;
+      }
+      return true; // equal
+    });
+    if (matches.length) {
+      matches.sort((a, b) => {
+        const aParts = a.version.split('.').map(Number);
+        const bParts = b.version.split('.').map(Number);
+        for (let i = 0; i < Math.max(aParts.length, bParts.length); i++) {
+          const diff = (bParts[i] || 0) - (aParts[i] || 0);
+          if (diff !== 0) return diff;
+        }
+        return 0;
+      });
+      return matches[0].version;
+    }
+  }
+
+  // Fallback: if there's only one version of this tool, return it
+  if (candidates.length === 1) return candidates[0].version;
+
+  return null;
+}
+
 function getImplType(t) {
   if (!t.implementation) return "source";
   if (t.implementation.source) return "source";
@@ -613,13 +846,56 @@ function esc(s) {
 }
 
 function syntaxHighlight(json) {
-  return json.replace(/("(\\u[\da-fA-F]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g, (match) => {
+  // First pass: basic syntax highlighting
+  let result = json.replace(/("(\\u[\da-fA-F]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g, (match) => {
     let cls = "num";
     if (/^"/.test(match)) cls = /:$/.test(match) ? "key" : "str";
     else if (/true|false/.test(match)) cls = "bool";
     else if (/null/.test(match)) cls = "null";
     return `<span class="${cls}">${match}</span>`;
   });
+
+  // Second pass: make $ref values clickable
+  // After first pass, `"$ref":` becomes `<span class="key">"$ref":</span>`
+  // and the value `"#/schemas/X"` becomes `<span class="str">"#/schemas/X"</span>`
+  result = result.replace(
+    /(<span class="key">"\$ref":\s*<\/span>\s*<span class="str">)"(#\/schemas\/([^"]+))"(<\/span>)/g,
+    (match, prefix, fullRef, schemaName, suffix) => {
+      const safeName = schemaName.replace(/'/g, "\\'");
+      return `${prefix}"<a class="json-ref-link" onclick="event.stopPropagation();closeDetail();navigateToSchema('${safeName}')">${fullRef}</a>"${suffix}`;
+    }
+  );
+
+  return result;
+}
+
+// Recursively find all $ref schema references in a schema object
+function findSchemaRefs(obj) {
+  const refs = new Set();
+  function walk(node) {
+    if (!node || typeof node !== 'object') return;
+    if (node['$ref']) {
+      const name = extractRefName(node['$ref']);
+      if (name) refs.add(name);
+    }
+    for (const val of Object.values(node)) {
+      if (typeof val === 'object' && val !== null) walk(val);
+    }
+  }
+  walk(obj);
+  return [...refs];
+}
+
+// Extract schema name from a $ref like "#/schemas/NormalizedSearchResponse"
+function extractRefName(ref) {
+  if (!ref) return null;
+  const match = ref.match(/^#\/schemas\/(.+)$/);
+  return match ? match[1] : null;
+}
+
+// Navigate to a schema by name: switch to Schemas tab, find card, scroll & highlight
+function navigateToSchema(schemaName) {
+  navigateToItem('schema', schemaName);
 }
 
 document.addEventListener("keydown", e => { if (e.key === "Escape") closeDetail(); });

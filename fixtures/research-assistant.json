@@ -62,6 +62,710 @@
             }
           }
         }
+      },
+      {
+        "name": "ExaSearchInput",
+        "version": "1.0.0",
+        "schema": {
+          "type": "object",
+          "properties": {
+            "query": {
+              "type": "string",
+              "description": "Search query for web search"
+            },
+            "num_results": {
+              "type": "integer",
+              "description": "Number of results to return (1-20)",
+              "default": 10
+            },
+            "use_autoprompt": {
+              "type": "boolean",
+              "description": "Use Exa's autoprompt feature",
+              "default": true
+            }
+          },
+          "required": [
+            "query"
+          ]
+        }
+      },
+      {
+        "name": "ExaSearchResponse",
+        "version": "1.0.0",
+        "schema": {
+          "type": "object",
+          "properties": {
+            "query": {
+              "type": "string"
+            },
+            "results": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "title": {
+                    "type": "string"
+                  },
+                  "url": {
+                    "type": "string"
+                  },
+                  "text": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "highlight": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "score": {
+                    "type": "number"
+                  },
+                  "published_date": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  }
+                }
+              }
+            },
+            "error": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          }
+        }
+      },
+      {
+        "name": "ArxivSearchInput",
+        "version": "1.0.0",
+        "schema": {
+          "type": "object",
+          "properties": {
+            "query": {
+              "type": "string",
+              "description": "Search query for arXiv papers"
+            },
+            "num_results": {
+              "type": "integer",
+              "description": "Number of papers to return (1-50)",
+              "default": 10
+            },
+            "sort_by": {
+              "type": "string",
+              "description": "Sort order: relevance, lastUpdatedDate, submittedDate",
+              "default": "relevance"
+            }
+          },
+          "required": [
+            "query"
+          ]
+        }
+      },
+      {
+        "name": "ArxivSearchResponse",
+        "version": "1.0.0",
+        "schema": {
+          "type": "object",
+          "properties": {
+            "query": {
+              "type": "string"
+            },
+            "papers": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "arxiv_id": {
+                    "type": "string"
+                  },
+                  "title": {
+                    "type": "string"
+                  },
+                  "abstract": {
+                    "type": "string"
+                  },
+                  "authors": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "categories": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "pdf_url": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "abs_url": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "published": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  }
+                }
+              }
+            },
+            "error": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          }
+        }
+      },
+      {
+        "name": "GitHubSearchInput",
+        "version": "1.0.0",
+        "schema": {
+          "type": "object",
+          "properties": {
+            "query": {
+              "type": "string",
+              "description": "Search query for GitHub repositories"
+            },
+            "num_results": {
+              "type": "integer",
+              "description": "Number of repositories to return (1-30)",
+              "default": 10
+            },
+            "search_type": {
+              "type": "string",
+              "description": "What to search: repositories, code",
+              "default": "repositories"
+            }
+          },
+          "required": [
+            "query"
+          ]
+        }
+      },
+      {
+        "name": "GitHubSearchResponse",
+        "version": "1.0.0",
+        "schema": {
+          "type": "object",
+          "properties": {
+            "query": {
+              "type": "string"
+            },
+            "search_type": {
+              "type": "string"
+            },
+            "total_count": {
+              "type": "integer"
+            },
+            "repos": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "full_name": {
+                    "type": "string"
+                  },
+                  "html_url": {
+                    "type": "string"
+                  },
+                  "description": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "stargazers_count": {
+                    "type": "integer"
+                  },
+                  "forks_count": {
+                    "type": "integer"
+                  },
+                  "language": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "topics": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            },
+            "error": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          }
+        }
+      },
+      {
+        "name": "HuggingFaceSearchInput",
+        "version": "1.0.0",
+        "schema": {
+          "type": "object",
+          "properties": {
+            "query": {
+              "type": "string",
+              "description": "Search query for HuggingFace"
+            },
+            "num_results": {
+              "type": "integer",
+              "description": "Number of results to return (1-30)",
+              "default": 10
+            },
+            "search_type": {
+              "type": "string",
+              "description": "What to search: models, datasets, spaces",
+              "default": "models"
+            }
+          },
+          "required": [
+            "query"
+          ]
+        }
+      },
+      {
+        "name": "HuggingFaceSearchResponse",
+        "version": "1.0.0",
+        "schema": {
+          "type": "object",
+          "properties": {
+            "query": {
+              "type": "string"
+            },
+            "search_type": {
+              "type": "string"
+            },
+            "models": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string"
+                  },
+                  "url": {
+                    "type": "string"
+                  },
+                  "description": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "downloads": {
+                    "type": "integer"
+                  },
+                  "pipeline_tag": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  }
+                }
+              }
+            },
+            "error": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          }
+        }
+      },
+      {
+        "name": "EntitySearchInput",
+        "version": "1.0.0",
+        "schema": {
+          "type": "object",
+          "properties": {
+            "query": {
+              "type": "string",
+              "description": "Semantic search query"
+            },
+            "limit": {
+              "type": "integer",
+              "description": "Max results",
+              "default": 10
+            }
+          },
+          "required": [
+            "query"
+          ]
+        }
+      },
+      {
+        "name": "CreateEntityInput",
+        "version": "1.0.0",
+        "schema": {
+          "type": "object",
+          "properties": {
+            "name": {
+              "type": "string",
+              "description": "Entity name"
+            },
+            "entity_type": {
+              "type": "string",
+              "description": "Type: paper, concept, tool, person, organization"
+            },
+            "description": {
+              "type": "string",
+              "description": "Detailed description"
+            },
+            "properties": {
+              "type": "object",
+              "description": "Additional properties (url, authors, etc.)"
+            }
+          },
+          "required": [
+            "name",
+            "entity_type",
+            "description"
+          ]
+        }
+      },
+      {
+        "name": "CreateRelationInput",
+        "version": "1.0.0",
+        "schema": {
+          "type": "object",
+          "properties": {
+            "subject_id": {
+              "type": "string",
+              "description": "Source entity ID"
+            },
+            "object_id": {
+              "type": "string",
+              "description": "Target entity ID"
+            },
+            "predicate": {
+              "type": "string",
+              "description": "Relationship: extends, cites, implements, related_to, authored_by"
+            }
+          },
+          "required": [
+            "subject_id",
+            "object_id",
+            "predicate"
+          ]
+        }
+      },
+      {
+        "name": "SearchCategoriesInput",
+        "version": "1.0.0",
+        "schema": {
+          "type": "object",
+          "properties": {
+            "query": {
+              "type": "string",
+              "description": "Search query"
+            },
+            "limit": {
+              "type": "integer",
+              "description": "Max results",
+              "default": 10
+            }
+          },
+          "required": [
+            "query"
+          ]
+        }
+      },
+      {
+        "name": "CreateCategoryInput",
+        "version": "1.0.0",
+        "schema": {
+          "type": "object",
+          "properties": {
+            "name": {
+              "type": "string",
+              "description": "Category name"
+            },
+            "description": {
+              "type": "string",
+              "description": "What belongs in this category"
+            },
+            "parent_id": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "Parent category ID (null for root)"
+            }
+          },
+          "required": [
+            "name",
+            "description"
+          ]
+        }
+      },
+      {
+        "name": "BatchFetchInput",
+        "version": "1.0.0",
+        "schema": {
+          "type": "object",
+          "properties": {
+            "urls": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "URLs to fetch"
+            },
+            "max_length_per_url": {
+              "type": "integer",
+              "description": "Max content length per URL",
+              "default": 5000
+            }
+          },
+          "required": [
+            "urls"
+          ]
+        }
+      },
+      {
+        "name": "UrlFetchInput",
+        "version": "1.0.0",
+        "schema": {
+          "type": "object",
+          "properties": {
+            "url": {
+              "type": "string",
+              "description": "URL to fetch"
+            },
+            "max_length": {
+              "type": "integer",
+              "description": "Max content length",
+              "default": 10000
+            }
+          },
+          "required": [
+            "url"
+          ]
+        }
+      },
+      {
+        "name": "ExtractUrlsInput",
+        "version": "1.0.0",
+        "schema": {
+          "type": "object",
+          "properties": {
+            "text": {
+              "type": "string",
+              "description": "Text to extract URLs from"
+            },
+            "domain_filter": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "Only return URLs from this domain"
+            }
+          },
+          "required": [
+            "text"
+          ]
+        }
+      },
+      {
+        "name": "RegisterContentInput",
+        "version": "1.0.0",
+        "schema": {
+          "type": "object",
+          "properties": {
+            "url": {
+              "type": "string",
+              "description": "Content URL"
+            },
+            "summary": {
+              "type": "string",
+              "description": "Content summary"
+            },
+            "metadata": {
+              "type": "object",
+              "description": "Additional metadata"
+            }
+          },
+          "required": [
+            "url"
+          ]
+        }
+      },
+      {
+        "name": "TagContentInput",
+        "version": "1.0.0",
+        "schema": {
+          "type": "object",
+          "properties": {
+            "content_id": {
+              "type": "string",
+              "description": "Content ID (from register_content)"
+            },
+            "category_id": {
+              "type": "string",
+              "description": "Category ID to tag with"
+            }
+          },
+          "required": [
+            "content_id",
+            "category_id"
+          ]
+        }
+      },
+      {
+        "name": "SearchInput",
+        "version": "1.0.0",
+        "description": "Shared input schema for all search tools — virtual and composed",
+        "schema": {
+          "type": "object",
+          "properties": {
+            "query": {
+              "type": "string",
+              "description": "Search query"
+            },
+            "num_results": {
+              "type": "integer",
+              "description": "Maximum number of results to return",
+              "default": 10
+            }
+          },
+          "required": [
+            "query"
+          ]
+        }
+      },
+      {
+        "name": "MultiSourceSearchInput",
+        "version": "1.0.0",
+        "schema": {
+          "type": "object",
+          "properties": {
+            "query": {
+              "type": "string",
+              "description": "Search query"
+            },
+            "num_results": {
+              "type": "integer",
+              "description": "Max results per source",
+              "default": 5
+            }
+          },
+          "required": [
+            "query"
+          ]
+        }
+      },
+      {
+        "name": "FetchAndExtractInput",
+        "version": "1.0.0",
+        "schema": {
+          "type": "object",
+          "properties": {
+            "url": {
+              "type": "string",
+              "description": "URL to fetch and extract links from"
+            }
+          },
+          "required": [
+            "url"
+          ]
+        }
+      },
+      {
+        "name": "ResearchAndFetchInput",
+        "version": "1.0.0",
+        "schema": {
+          "type": "object",
+          "properties": {
+            "query": {
+              "type": "string",
+              "description": "Research topic"
+            },
+            "num_results": {
+              "type": "integer",
+              "description": "Max results per source",
+              "default": 5
+            },
+            "limit": {
+              "type": "integer",
+              "description": "Max entities/categories",
+              "default": 10
+            }
+          },
+          "required": [
+            "query"
+          ]
+        }
+      },
+      {
+        "name": "StoreResearchFindingInput",
+        "version": "1.0.0",
+        "description": "Agent-facing schema for saving research findings. Uses domain language: 'title' (maps to backend 'name'), 'summary' (maps to 'description'), 'kind' (maps to 'entity_type', defaults to 'paper'). Backend 'properties' field is projected away.",
+        "schema": {
+          "type": "object",
+          "properties": {
+            "title": {
+              "type": "string",
+              "description": "Title of the research finding"
+            },
+            "kind": {
+              "type": "string",
+              "description": "What kind of finding (defaults to 'paper')",
+              "enum": [
+                "paper",
+                "concept",
+                "tool",
+                "person",
+                "organization",
+                "dataset",
+                "model"
+              ],
+              "default": "paper"
+            },
+            "summary": {
+              "type": "string",
+              "description": "Summary of the finding"
+            },
+            "url": {
+              "type": "string",
+              "description": "URL of the source"
+            },
+            "category_id": {
+              "type": "string",
+              "description": "Category to tag this finding under"
+            }
+          },
+          "required": [
+            "title",
+            "summary",
+            "url",
+            "category_id"
+          ]
+        }
       }
     ],
     "servers": [
@@ -166,7 +870,7 @@
       {
         "name": "exa_search",
         "version": "1.0.0",
-        "description": "Search the web using Exa API. Returns results with title, URL, text snippets, and scores.",
+        "description": "Search the web. Returns results with title, URL, text snippets, and relevance scores.",
         "environment": "prod",
         "implementation": {
           "source": {
@@ -175,81 +879,16 @@
           }
         },
         "inputSchema": {
-          "type": "object",
-          "properties": {
-            "query": {
-              "type": "string",
-              "description": "Search query for web search"
-            },
-            "num_results": {
-              "type": "integer",
-              "description": "Number of results to return (1-20)",
-              "default": 10
-            },
-            "use_autoprompt": {
-              "type": "boolean",
-              "description": "Use Exa's autoprompt feature",
-              "default": true
-            }
-          },
-          "required": [
-            "query"
-          ]
+          "$ref": "#/schemas/ExaSearchInput"
         },
         "outputSchema": {
-          "type": "object",
-          "properties": {
-            "query": {
-              "type": "string"
-            },
-            "results": {
-              "type": "array",
-              "items": {
-                "type": "object",
-                "properties": {
-                  "title": {
-                    "type": "string"
-                  },
-                  "url": {
-                    "type": "string"
-                  },
-                  "text": {
-                    "type": [
-                      "string",
-                      "null"
-                    ]
-                  },
-                  "highlight": {
-                    "type": [
-                      "string",
-                      "null"
-                    ]
-                  },
-                  "score": {
-                    "type": "number"
-                  },
-                  "published_date": {
-                    "type": [
-                      "string",
-                      "null"
-                    ]
-                  }
-                }
-              }
-            },
-            "error": {
-              "type": [
-                "string",
-                "null"
-              ]
-            }
-          }
+          "$ref": "#/schemas/ExaSearchResponse"
         }
       },
       {
         "name": "arxiv_search",
         "version": "1.0.0",
-        "description": "Search arXiv for academic papers. Returns paper metadata including title, authors, abstract, and PDF URL. No API key required.",
+        "description": "Search academic preprint papers. Returns title, authors, abstract, and PDF link.",
         "environment": "prod",
         "implementation": {
           "source": {
@@ -258,93 +897,16 @@
           }
         },
         "inputSchema": {
-          "type": "object",
-          "properties": {
-            "query": {
-              "type": "string",
-              "description": "Search query for arXiv papers"
-            },
-            "num_results": {
-              "type": "integer",
-              "description": "Number of papers to return (1-50)",
-              "default": 10
-            },
-            "sort_by": {
-              "type": "string",
-              "description": "Sort order: relevance, lastUpdatedDate, submittedDate",
-              "default": "relevance"
-            }
-          },
-          "required": [
-            "query"
-          ]
+          "$ref": "#/schemas/ArxivSearchInput"
         },
         "outputSchema": {
-          "type": "object",
-          "properties": {
-            "query": {
-              "type": "string"
-            },
-            "papers": {
-              "type": "array",
-              "items": {
-                "type": "object",
-                "properties": {
-                  "arxiv_id": {
-                    "type": "string"
-                  },
-                  "title": {
-                    "type": "string"
-                  },
-                  "abstract": {
-                    "type": "string"
-                  },
-                  "authors": {
-                    "type": "array",
-                    "items": {
-                      "type": "string"
-                    }
-                  },
-                  "categories": {
-                    "type": "array",
-                    "items": {
-                      "type": "string"
-                    }
-                  },
-                  "pdf_url": {
-                    "type": [
-                      "string",
-                      "null"
-                    ]
-                  },
-                  "abs_url": {
-                    "type": [
-                      "string",
-                      "null"
-                    ]
-                  },
-                  "published": {
-                    "type": [
-                      "string",
-                      "null"
-                    ]
-                  }
-                }
-              }
-            },
-            "error": {
-              "type": [
-                "string",
-                "null"
-              ]
-            }
-          }
+          "$ref": "#/schemas/ArxivSearchResponse"
         }
       },
       {
         "name": "github_search",
         "version": "1.0.0",
-        "description": "Search GitHub for repositories or code. GITHUB_TOKEN optional but recommended to avoid rate limits.",
+        "description": "Search code repositories. Returns repo name, URL, description, stars, and language.",
         "environment": "prod",
         "implementation": {
           "source": {
@@ -353,90 +915,16 @@
           }
         },
         "inputSchema": {
-          "type": "object",
-          "properties": {
-            "query": {
-              "type": "string",
-              "description": "Search query for GitHub repositories"
-            },
-            "num_results": {
-              "type": "integer",
-              "description": "Number of repositories to return (1-30)",
-              "default": 10
-            },
-            "search_type": {
-              "type": "string",
-              "description": "What to search: repositories, code",
-              "default": "repositories"
-            }
-          },
-          "required": [
-            "query"
-          ]
+          "$ref": "#/schemas/GitHubSearchInput"
         },
         "outputSchema": {
-          "type": "object",
-          "properties": {
-            "query": {
-              "type": "string"
-            },
-            "search_type": {
-              "type": "string"
-            },
-            "total_count": {
-              "type": "integer"
-            },
-            "repos": {
-              "type": "array",
-              "items": {
-                "type": "object",
-                "properties": {
-                  "full_name": {
-                    "type": "string"
-                  },
-                  "html_url": {
-                    "type": "string"
-                  },
-                  "description": {
-                    "type": [
-                      "string",
-                      "null"
-                    ]
-                  },
-                  "stargazers_count": {
-                    "type": "integer"
-                  },
-                  "forks_count": {
-                    "type": "integer"
-                  },
-                  "language": {
-                    "type": [
-                      "string",
-                      "null"
-                    ]
-                  },
-                  "topics": {
-                    "type": "array",
-                    "items": {
-                      "type": "string"
-                    }
-                  }
-                }
-              }
-            },
-            "error": {
-              "type": [
-                "string",
-                "null"
-              ]
-            }
-          }
+          "$ref": "#/schemas/GitHubSearchResponse"
         }
       },
       {
         "name": "huggingface_search",
         "version": "1.0.0",
-        "description": "Search HuggingFace for models, datasets, or spaces. HF_TOKEN optional but recommended.",
+        "description": "Search ML model repositories. Returns model ID, description, download count, and tags.",
         "environment": "prod",
         "implementation": {
           "source": {
@@ -445,78 +933,16 @@
           }
         },
         "inputSchema": {
-          "type": "object",
-          "properties": {
-            "query": {
-              "type": "string",
-              "description": "Search query for HuggingFace"
-            },
-            "num_results": {
-              "type": "integer",
-              "description": "Number of results to return (1-30)",
-              "default": 10
-            },
-            "search_type": {
-              "type": "string",
-              "description": "What to search: models, datasets, spaces",
-              "default": "models"
-            }
-          },
-          "required": [
-            "query"
-          ]
+          "$ref": "#/schemas/HuggingFaceSearchInput"
         },
         "outputSchema": {
-          "type": "object",
-          "properties": {
-            "query": {
-              "type": "string"
-            },
-            "search_type": {
-              "type": "string"
-            },
-            "models": {
-              "type": "array",
-              "items": {
-                "type": "object",
-                "properties": {
-                  "id": {
-                    "type": "string"
-                  },
-                  "url": {
-                    "type": "string"
-                  },
-                  "description": {
-                    "type": [
-                      "string",
-                      "null"
-                    ]
-                  },
-                  "downloads": {
-                    "type": "integer"
-                  },
-                  "pipeline_tag": {
-                    "type": [
-                      "string",
-                      "null"
-                    ]
-                  }
-                }
-              }
-            },
-            "error": {
-              "type": [
-                "string",
-                "null"
-              ]
-            }
-          }
+          "$ref": "#/schemas/HuggingFaceSearchResponse"
         }
       },
       {
         "name": "entity_search",
         "version": "1.0.0",
-        "description": "Semantic search over knowledge graph entity descriptions using vector similarity",
+        "description": "Search your knowledge graph for previously saved entities by semantic similarity",
         "environment": "prod",
         "implementation": {
           "source": {
@@ -525,27 +951,13 @@
           }
         },
         "inputSchema": {
-          "type": "object",
-          "properties": {
-            "query": {
-              "type": "string",
-              "description": "Semantic search query"
-            },
-            "limit": {
-              "type": "integer",
-              "description": "Max results",
-              "default": 10
-            }
-          },
-          "required": [
-            "query"
-          ]
+          "$ref": "#/schemas/EntitySearchInput"
         }
       },
       {
         "name": "create_entity",
         "version": "1.0.0",
-        "description": "Add an entity to the knowledge graph (paper, concept, tool, person, etc.)",
+        "description": "Save an entity to the knowledge graph with a name, type, and description for future retrieval",
         "environment": "prod",
         "implementation": {
           "source": {
@@ -554,36 +966,13 @@
           }
         },
         "inputSchema": {
-          "type": "object",
-          "properties": {
-            "name": {
-              "type": "string",
-              "description": "Entity name"
-            },
-            "entity_type": {
-              "type": "string",
-              "description": "Type: paper, concept, tool, person, organization"
-            },
-            "description": {
-              "type": "string",
-              "description": "Detailed description"
-            },
-            "properties": {
-              "type": "object",
-              "description": "Additional properties (url, authors, etc.)"
-            }
-          },
-          "required": [
-            "name",
-            "entity_type",
-            "description"
-          ]
+          "$ref": "#/schemas/CreateEntityInput"
         }
       },
       {
         "name": "create_relation",
         "version": "1.0.0",
-        "description": "Link two entities in the knowledge graph with a predicate",
+        "description": "Create a relationship between two entities (e.g. 'paper X cites paper Y', 'tool A implements concept B')",
         "environment": "prod",
         "implementation": {
           "source": {
@@ -592,32 +981,13 @@
           }
         },
         "inputSchema": {
-          "type": "object",
-          "properties": {
-            "subject_id": {
-              "type": "string",
-              "description": "Source entity ID"
-            },
-            "object_id": {
-              "type": "string",
-              "description": "Target entity ID"
-            },
-            "predicate": {
-              "type": "string",
-              "description": "Relationship: extends, cites, implements, related_to, authored_by"
-            }
-          },
-          "required": [
-            "subject_id",
-            "object_id",
-            "predicate"
-          ]
+          "$ref": "#/schemas/CreateRelationInput"
         }
       },
       {
         "name": "search_categories",
         "version": "1.0.0",
-        "description": "Semantic search over category taxonomy",
+        "description": "Find categories in your taxonomy that match a topic",
         "environment": "prod",
         "implementation": {
           "source": {
@@ -626,27 +996,13 @@
           }
         },
         "inputSchema": {
-          "type": "object",
-          "properties": {
-            "query": {
-              "type": "string",
-              "description": "Search query"
-            },
-            "limit": {
-              "type": "integer",
-              "description": "Max results",
-              "default": 10
-            }
-          },
-          "required": [
-            "query"
-          ]
+          "$ref": "#/schemas/SearchCategoriesInput"
         }
       },
       {
         "name": "create_category",
         "version": "1.0.0",
-        "description": "Add a category to the taxonomy. Build hierarchies by setting parent_id.",
+        "description": "Create a new category for organizing research findings. Set parent_id to nest under an existing category.",
         "environment": "prod",
         "implementation": {
           "source": {
@@ -655,34 +1011,13 @@
           }
         },
         "inputSchema": {
-          "type": "object",
-          "properties": {
-            "name": {
-              "type": "string",
-              "description": "Category name"
-            },
-            "description": {
-              "type": "string",
-              "description": "What belongs in this category"
-            },
-            "parent_id": {
-              "type": [
-                "string",
-                "null"
-              ],
-              "description": "Parent category ID (null for root)"
-            }
-          },
-          "required": [
-            "name",
-            "description"
-          ]
+          "$ref": "#/schemas/CreateCategoryInput"
         }
       },
       {
         "name": "batch_fetch",
         "version": "1.0.0",
-        "description": "Fetch content from multiple URLs in parallel",
+        "description": "Fetch and extract text content from multiple URLs in parallel",
         "environment": "prod",
         "implementation": {
           "source": {
@@ -691,30 +1026,13 @@
           }
         },
         "inputSchema": {
-          "type": "object",
-          "properties": {
-            "urls": {
-              "type": "array",
-              "items": {
-                "type": "string"
-              },
-              "description": "URLs to fetch"
-            },
-            "max_length_per_url": {
-              "type": "integer",
-              "description": "Max content length per URL",
-              "default": 5000
-            }
-          },
-          "required": [
-            "urls"
-          ]
+          "$ref": "#/schemas/BatchFetchInput"
         }
       },
       {
         "name": "url_fetch",
         "version": "1.0.0",
-        "description": "Fetch a single URL and extract text content and metadata",
+        "description": "Fetch a URL and extract its text content, title, and metadata",
         "environment": "prod",
         "implementation": {
           "source": {
@@ -723,27 +1041,13 @@
           }
         },
         "inputSchema": {
-          "type": "object",
-          "properties": {
-            "url": {
-              "type": "string",
-              "description": "URL to fetch"
-            },
-            "max_length": {
-              "type": "integer",
-              "description": "Max content length",
-              "default": 10000
-            }
-          },
-          "required": [
-            "url"
-          ]
+          "$ref": "#/schemas/UrlFetchInput"
         }
       },
       {
         "name": "extract_urls",
         "version": "1.0.0",
-        "description": "Extract URLs from text content with optional domain filtering",
+        "description": "Extract all URLs from a block of text, optionally filtering to a specific domain",
         "environment": "prod",
         "implementation": {
           "source": {
@@ -752,29 +1056,13 @@
           }
         },
         "inputSchema": {
-          "type": "object",
-          "properties": {
-            "text": {
-              "type": "string",
-              "description": "Text to extract URLs from"
-            },
-            "domain_filter": {
-              "type": [
-                "string",
-                "null"
-              ],
-              "description": "Only return URLs from this domain"
-            }
-          },
-          "required": [
-            "text"
-          ]
+          "$ref": "#/schemas/ExtractUrlsInput"
         }
       },
       {
         "name": "register_content",
         "version": "1.0.0",
-        "description": "Register a URL/content for tagging in the tag service",
+        "description": "Register a piece of content (by URL and summary) so it can be tagged with categories",
         "environment": "prod",
         "implementation": {
           "source": {
@@ -783,30 +1071,13 @@
           }
         },
         "inputSchema": {
-          "type": "object",
-          "properties": {
-            "url": {
-              "type": "string",
-              "description": "Content URL"
-            },
-            "summary": {
-              "type": "string",
-              "description": "Content summary"
-            },
-            "metadata": {
-              "type": "object",
-              "description": "Additional metadata"
-            }
-          },
-          "required": [
-            "url"
-          ]
+          "$ref": "#/schemas/RegisterContentInput"
         }
       },
       {
         "name": "tag_content",
         "version": "1.0.0",
-        "description": "Associate content with a category",
+        "description": "Tag a registered piece of content with a category for organized retrieval",
         "environment": "prod",
         "implementation": {
           "source": {
@@ -815,27 +1086,13 @@
           }
         },
         "inputSchema": {
-          "type": "object",
-          "properties": {
-            "content_id": {
-              "type": "string",
-              "description": "Content ID (from register_content)"
-            },
-            "category_id": {
-              "type": "string",
-              "description": "Category ID to tag with"
-            }
-          },
-          "required": [
-            "content_id",
-            "category_id"
-          ]
+          "$ref": "#/schemas/TagContentInput"
         }
       },
       {
-        "name": "normalized_exa",
+        "name": "web_search",
         "version": "1.0.0",
-        "description": "Exa web search with normalized output \u2014 maps native Exa response to common NormalizedSearchResponse schema",
+        "description": "Search the web for pages, articles, and documentation relevant to your research topic",
         "environment": "prod",
         "implementation": {
           "source": {
@@ -871,30 +1128,16 @@
           }
         },
         "inputSchema": {
-          "type": "object",
-          "properties": {
-            "query": {
-              "type": "string",
-              "description": "Search query"
-            },
-            "num_results": {
-              "type": "integer",
-              "description": "Number of results (1-20)",
-              "default": 10
-            }
-          },
-          "required": [
-            "query"
-          ]
+          "$ref": "#/schemas/SearchInput"
         },
         "outputSchema": {
           "$ref": "#/schemas/NormalizedSearchResponse"
         }
       },
       {
-        "name": "normalized_arxiv",
+        "name": "paper_search",
         "version": "1.0.0",
-        "description": "arXiv paper search with normalized output \u2014 maps native arXiv response to common NormalizedSearchResponse schema",
+        "description": "Search academic papers on arXiv for research publications, preprints, and technical papers",
         "environment": "prod",
         "implementation": {
           "source": {
@@ -930,30 +1173,16 @@
           }
         },
         "inputSchema": {
-          "type": "object",
-          "properties": {
-            "query": {
-              "type": "string",
-              "description": "Search query"
-            },
-            "num_results": {
-              "type": "integer",
-              "description": "Number of papers (1-50)",
-              "default": 10
-            }
-          },
-          "required": [
-            "query"
-          ]
+          "$ref": "#/schemas/SearchInput"
         },
         "outputSchema": {
           "$ref": "#/schemas/NormalizedSearchResponse"
         }
       },
       {
-        "name": "normalized_github",
+        "name": "code_search",
         "version": "1.0.0",
-        "description": "GitHub repo search with normalized output \u2014 maps native GitHub response to common NormalizedSearchResponse schema",
+        "description": "Search GitHub repositories for open-source code, libraries, and projects",
         "environment": "prod",
         "implementation": {
           "source": {
@@ -989,30 +1218,16 @@
           }
         },
         "inputSchema": {
-          "type": "object",
-          "properties": {
-            "query": {
-              "type": "string",
-              "description": "Search query"
-            },
-            "num_results": {
-              "type": "integer",
-              "description": "Number of repos (1-30)",
-              "default": 10
-            }
-          },
-          "required": [
-            "query"
-          ]
+          "$ref": "#/schemas/SearchInput"
         },
         "outputSchema": {
           "$ref": "#/schemas/NormalizedSearchResponse"
         }
       },
       {
-        "name": "normalized_huggingface",
+        "name": "model_search",
         "version": "1.0.0",
-        "description": "HuggingFace model search with normalized output \u2014 maps native HF response to common NormalizedSearchResponse schema",
+        "description": "Search HuggingFace for ML models, datasets, and spaces",
         "environment": "prod",
         "implementation": {
           "source": {
@@ -1048,21 +1263,7 @@
           }
         },
         "inputSchema": {
-          "type": "object",
-          "properties": {
-            "query": {
-              "type": "string",
-              "description": "Search query"
-            },
-            "num_results": {
-              "type": "integer",
-              "description": "Number of results (1-30)",
-              "default": 10
-            }
-          },
-          "required": [
-            "query"
-          ]
+          "$ref": "#/schemas/SearchInput"
         },
         "outputSchema": {
           "$ref": "#/schemas/NormalizedSearchResponse"
@@ -1071,26 +1272,26 @@
       {
         "name": "multi_source_search",
         "version": "1.0.0",
-        "description": "Searches Exa, arXiv, GitHub, and HuggingFace in parallel via normalized wrappers, deduplicates by URL",
+        "description": "Searches for models, papers, source code, and the wider web in parallel, deduplicates results by URL",
         "environment": "prod",
         "implementation": {
           "composition": {
             "scatterGather": {
               "targets": [
                 {
-                  "tool": "normalized_exa",
+                  "tool": "web_search",
                   "version": "1.0.0"
                 },
                 {
-                  "tool": "normalized_arxiv",
+                  "tool": "paper_search",
                   "version": "1.0.0"
                 },
                 {
-                  "tool": "normalized_github",
+                  "tool": "code_search",
                   "version": "1.0.0"
                 },
                 {
-                  "tool": "normalized_huggingface",
+                  "tool": "model_search",
                   "version": "1.0.0"
                 }
               ],
@@ -1119,21 +1320,7 @@
           }
         },
         "inputSchema": {
-          "type": "object",
-          "properties": {
-            "query": {
-              "type": "string",
-              "description": "Search query"
-            },
-            "num_results": {
-              "type": "integer",
-              "description": "Max results per source",
-              "default": 5
-            }
-          },
-          "required": [
-            "query"
-          ]
+          "$ref": "#/schemas/MultiSourceSearchInput"
         },
         "outputSchema": {
           "$ref": "#/schemas/NormalizedSearchResponse"
@@ -1142,7 +1329,7 @@
       {
         "name": "fetch_and_extract",
         "version": "1.0.0",
-        "description": "Fetches a URL then extracts links from the content \u2014 two-step pipeline across fetch-service tools",
+        "description": "Fetch a URL and extract all links found in its content",
         "environment": "prod",
         "implementation": {
           "composition": {
@@ -1179,22 +1366,13 @@
           }
         },
         "inputSchema": {
-          "type": "object",
-          "properties": {
-            "url": {
-              "type": "string",
-              "description": "URL to fetch and extract links from"
-            }
-          },
-          "required": [
-            "url"
-          ]
+          "$ref": "#/schemas/FetchAndExtractInput"
         }
       },
       {
         "name": "research_and_fetch",
         "version": "1.0.0",
-        "description": "Complete research workflow: searches knowledge graph + 4 external sources in parallel, then fetches page content from top results",
+        "description": "Research a topic end-to-end: searches your knowledge graph and multiple external sources in parallel, then fetches the full content of top results. Use this as your primary research tool.",
         "environment": "prod",
         "implementation": {
           "composition": {
@@ -1261,32 +1439,13 @@
           }
         },
         "inputSchema": {
-          "type": "object",
-          "properties": {
-            "query": {
-              "type": "string",
-              "description": "Research topic"
-            },
-            "num_results": {
-              "type": "integer",
-              "description": "Max results per source",
-              "default": 5
-            },
-            "limit": {
-              "type": "integer",
-              "description": "Max entities/categories",
-              "default": 10
-            }
-          },
-          "required": [
-            "query"
-          ]
+          "$ref": "#/schemas/ResearchAndFetchInput"
         }
       },
       {
         "name": "store_research_finding",
         "version": "1.0.0",
-        "description": "Cross-service pipeline: creates entity \u2192 registers content \u2192 tags it. Links data across entity-service and tag-service boundaries.",
+        "description": "Save a research finding: creates a knowledge graph entity, registers the content, and tags it under a category. Provide a title, summary, URL, and category. Kind defaults to 'paper' if not specified.",
         "environment": "prod",
         "implementation": {
           "composition": {
@@ -1298,6 +1457,15 @@
                     "tool": "create_entity",
                     "version": "1.0.0"
                   },
+                  "fieldMapping": {
+                    "title": "name",
+                    "summary": "description",
+                    "kind": "entity_type"
+                  },
+                  "defaults": {
+                    "kind": "paper"
+                  },
+                  "projection": ["properties"],
                   "input": {
                     "construct": {
                       "fields": {
@@ -1308,12 +1476,12 @@
                         },
                         "entity_type": {
                           "fromInput": {
-                            "path": "$.entity_type"
+                            "path": "$.kind"
                           }
                         },
                         "description": {
                           "fromInput": {
-                            "path": "$.description"
+                            "path": "$.summary"
                           }
                         }
                       }
@@ -1384,40 +1552,7 @@
           }
         },
         "inputSchema": {
-          "type": "object",
-          "properties": {
-            "title": {
-              "type": "string"
-            },
-            "entity_type": {
-              "type": "string",
-              "enum": [
-                "paper",
-                "concept",
-                "tool",
-                "person",
-                "organization",
-                "dataset",
-                "model"
-              ]
-            },
-            "description": {
-              "type": "string"
-            },
-            "url": {
-              "type": "string"
-            },
-            "category_id": {
-              "type": "string"
-            }
-          },
-          "required": [
-            "title",
-            "entity_type",
-            "description",
-            "url",
-            "category_id"
-          ]
+          "$ref": "#/schemas/StoreResearchFindingInput"
         }
       }
     ],
